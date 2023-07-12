@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package scmlb.v1;
+
+option go_package = "github.com/terassyi/seccamp-xdp/scmlb";
+
+import "google/protobuf/empty.proto";
+
+service ScmLbApi {
+	rpc Health(HealthRequest) returns (google.protobuf.Empty);
+}
+
+message HealthRequest {}
