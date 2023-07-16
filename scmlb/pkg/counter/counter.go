@@ -2,6 +2,9 @@ package counter
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
@@ -41,14 +44,21 @@ func (c *Counter) Get(ctx context.Context) (CounterResult, error) {
 		udpCounte uint32
 	)
 
+	keyNotFoundErrStr := "lookup: key does not exist"
 	if err := c.m.Lookup(constants.PROTOCOL_ICMP, &icmpCount); err != nil {
-		return CounterResult{}, nil
+		if !strings.Contains(err.Error(), keyNotFoundErrStr) {
+			return CounterResult{}, errors.Join(err, fmt.Errorf("failed to lookup counter map: protocol is %d", constants.PROTOCOL_ICMP))
+		}
 	}
 	if err := c.m.Lookup(constants.PROTOCOL_TCP, &tcpCount); err != nil {
-		return CounterResult{}, nil
+		if !strings.Contains(err.Error(), keyNotFoundErrStr) {
+			return CounterResult{}, errors.Join(err, fmt.Errorf("failed to lookup counter map: protocol is %d", constants.PROTOCOL_TCP))
+		}
 	}
 	if err := c.m.Lookup(constants.PROTOCOL_UDP, &udpCounte); err != nil {
-		return CounterResult{}, nil
+		if !strings.Contains(err.Error(), keyNotFoundErrStr) {
+			return CounterResult{}, errors.Join(err, fmt.Errorf("failed to lookup counter map: protocol is %d", constants.PROTOCOL_UDP))
+		}
 	}
 
 	return CounterResult{
