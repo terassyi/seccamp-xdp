@@ -1,0 +1,2 @@
+
+#define TAIL_CALLED_FUNC_COUNT 0

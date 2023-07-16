@@ -4,7 +4,7 @@
 // - protoc             v4.22.3
 // source: protobuf/scmlb.proto
 
-package scmlb
+package rpc
 
 import (
 	context "context"
@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	ScmLbApi_Health_FullMethodName = "/scmlb.v1.ScmLbApi/Health"
+	ScmLbApi_Stat_FullMethodName   = "/scmlb.v1.ScmLbApi/Stat"
 )
 
 // ScmLbApiClient is the client API for ScmLbApi service.
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ScmLbApiClient interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Stat(ctx context.Context, in *StatRequest, opts ...grpc.CallOption) (*StatResponse, error)
 }
 
 type scmLbApiClient struct {
@@ -47,11 +49,21 @@ func (c *scmLbApiClient) Health(ctx context.Context, in *HealthRequest, opts ...
 	return out, nil
 }
 
+func (c *scmLbApiClient) Stat(ctx context.Context, in *StatRequest, opts ...grpc.CallOption) (*StatResponse, error) {
+	out := new(StatResponse)
+	err := c.cc.Invoke(ctx, ScmLbApi_Stat_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScmLbApiServer is the server API for ScmLbApi service.
 // All implementations must embed UnimplementedScmLbApiServer
 // for forward compatibility
 type ScmLbApiServer interface {
 	Health(context.Context, *HealthRequest) (*emptypb.Empty, error)
+	Stat(context.Context, *StatRequest) (*StatResponse, error)
 	mustEmbedUnimplementedScmLbApiServer()
 }
 
@@ -61,6 +73,9 @@ type UnimplementedScmLbApiServer struct {
 
 func (UnimplementedScmLbApiServer) Health(context.Context, *HealthRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
+}
+func (UnimplementedScmLbApiServer) Stat(context.Context, *StatRequest) (*StatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stat not implemented")
 }
 func (UnimplementedScmLbApiServer) mustEmbedUnimplementedScmLbApiServer() {}
 
@@ -93,6 +108,24 @@ func _ScmLbApi_Health_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScmLbApi_Stat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).Stat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_Stat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).Stat(ctx, req.(*StatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScmLbApi_ServiceDesc is the grpc.ServiceDesc for ScmLbApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -103,6 +136,10 @@ var ScmLbApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Health",
 			Handler:    _ScmLbApi_Health_Handler,
+		},
+		{
+			MethodName: "Stat",
+			Handler:    _ScmLbApi_Stat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
