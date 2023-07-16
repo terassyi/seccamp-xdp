@@ -2,12 +2,32 @@ syntax = "proto3";
 
 package scmlb.v1;
 
-option go_package = "github.com/terassyi/seccamp-xdp/scmlb";
+option go_package = "github.com/terassyi/seccamp-xdp/scmlb/rpc";
 
 import "google/protobuf/empty.proto";
 
 service ScmLbApi {
 	rpc Health(HealthRequest) returns (google.protobuf.Empty);
+	rpc Stat(StatRequest) returns (StatResponse);
 }
 
 message HealthRequest {}
+
+message StatRequest {}
+
+message StatResponse {
+	repeated Interface ifaces = 1;
+}
+
+message Interface {
+	string name = 1;
+	int32 index = 2;
+	bool upstream = 4;
+	PacketCounter counter = 5;
+}
+
+message PacketCounter {
+	int32 icmp = 1;
+	int32 tcp = 2;
+	int32 udp = 3;
+}

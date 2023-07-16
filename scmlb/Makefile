@@ -22,7 +22,7 @@ setup:
 	GOBIN=$(PWD)/bin go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(PROTOC_GEN_DOC_VERSION)
 
 .PHONY: build
-build: pkg/rpc/scmlb.pb.go pkg/rpc/scmlb_grpc.pb.go $(CLI) $(DAEMON)
+build: generate-xdp pkg/rpc/scmlb.pb.go pkg/rpc/scmlb_grpc.pb.go $(CLI) $(DAEMON)
 
 .PHONY: cli
 cli: $(CLI)
@@ -42,14 +42,19 @@ clean:
 	rm $(DAEMON)
 	rm pkg/rpc/scmlb.pb.go 
 	rm pkg/rpc/scmlb_grpc.pb.go
+	find pkg/ -type f -name '*bpfe*' -delete
 
 pkg/rpc/scmlb.pb.go: protobuf/scmlb.proto
 	mkdir -p pkg/rpc
-	$(PROTOC) --go_out=module=github.com/terassyi/seccamp-xdp/scmlb:pkg/rpc $<
+	$(PROTOC) --go_out=module=github.com/terassyi/seccamp-xdp/scmlb:pkg $<
 
 pkg/rpc/scmlb_grpc.pb.go: protobuf/scmlb.proto
 	mkdir -p pkg/rpc
-	$(PROTOC) --go-grpc_out=module=github.com/terassyi/seccamp-xdp/scmlb:pkg/rpc $<
+	$(PROTOC) --go-grpc_out=module=github.com/terassyi/seccamp-xdp/scmlb:pkg $<
+
+.PHONY: generate-xdp
+generate-xdp:
+	go generate ./...
 
 .PHONY: vmlinux
 vmlinux: $(VMLINUX)
