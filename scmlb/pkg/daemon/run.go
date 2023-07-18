@@ -10,6 +10,7 @@ import (
 
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/counter"
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/firewall"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/loader"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/logger"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/rpc"
@@ -27,6 +28,7 @@ type Daemon struct {
 	rpc.UnimplementedScmLbApiServer
 
 	counter *counter.Counter
+	fw      *firewall.FwManager
 }
 
 func New(apiAddr string, apiPort int32, upstreamInterface string) (*Daemon, error) {
@@ -91,7 +93,12 @@ func (d *Daemon) Run() error {
 	}
 
 	// 各種機能をセットアップします。
-	if err := d.setupIngressCounter(d.upstream, loader); err != nil {
+	d.logger.InfoCtx(ctx, "setup packet counter")
+	if err := d.setupCounter(d.upstream, loader); err != nil {
+		return err
+	}
+	d.logger.InfoCtx(ctx, "setup firewall")
+	if err := d.setupFirewall(loader); err != nil {
 		return err
 	}
 
@@ -116,7 +123,7 @@ func (d *Daemon) Run() error {
 }
 
 // ingress_counter 機能のセットアップを行います
-func (d *Daemon) setupIngressCounter(name string, l *loader.Loader) error {
+func (d *Daemon) setupCounter(name string, l *loader.Loader) error {
 	program, ok := l.Programs[loader.PROG_NAME_COUNT]
 	if !ok {
 		return fmt.Errorf("failed to find ingress_count program")
@@ -130,5 +137,23 @@ func (d *Daemon) setupIngressCounter(name string, l *loader.Loader) error {
 		return err
 	}
 	d.counter = c
+	return nil
+}
+
+func (d *Daemon) setupFirewall(l *loader.Loader) error {
+	p, ok := l.Programs[loader.PROG_NAME_FIREWALL]
+	if !ok {
+		return fmt.Errorf("failed to find firewall program")
+	}
+	rm, ok := l.Maps[loader.MAP_NAME_RULES]
+	if !ok {
+		return fmt.Errorf("failed to find firewall map")
+	}
+	dm, ok := l.Maps[loader.MAP_NAME_DROP_COUNTER]
+	if !ok {
+		return fmt.Errorf("failed to find drop_counter")
+	}
+	f := firewall.NewManager(d.logger, p, rm, dm)
+	d.fw = f
 	return nil
 }

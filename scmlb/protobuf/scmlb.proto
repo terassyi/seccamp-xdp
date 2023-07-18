@@ -9,6 +9,9 @@ import "google/protobuf/empty.proto";
 service ScmLbApi {
 	rpc Health(HealthRequest) returns (google.protobuf.Empty);
 	rpc Stat(StatRequest) returns (StatResponse);
+	rpc FireWallRuleSet(FireWallRuleSetRqeust) returns (google.protobuf.Empty);
+	rpc FireWallRuleGet(FireWallRuleGetRequest) returns (FireWallRuleGetResponse);
+	rpc FireWallRuleDelete(FireWallRuleDeleteRequest) returns (google.protobuf.Empty);
 }
 
 message HealthRequest {}
@@ -30,4 +33,27 @@ message PacketCounter {
 	int32 icmp = 1;
 	int32 tcp = 2;
 	int32 udp = 3;
+}
+
+message FireWallRuleSetRqeust {
+	FireWallRule rule = 1;
+}
+
+message FireWallRuleGetRequest {}
+
+message FireWallRuleGetResponse {
+	repeated FireWallRule rules = 1;
+}
+
+message FireWallRuleDeleteRequest {
+	int32 id = 1;
+}
+
+message FireWallRule {
+	int32 id = 1;
+	string prefix = 2;
+	int32 from_port = 3;
+	int32 to_port = 4;
+	int32 protocol = 5;
+	int64 count = 6;
 }

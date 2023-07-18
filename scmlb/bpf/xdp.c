@@ -19,6 +19,16 @@ int count(struct xdp_md *ctx) {
 	
 	// ここに packet counter のロジックを記述します。
 	
+	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_FIREWALL);
+
+	bpf_printk("must not be reached");
+	return XDP_PASS;
+}
+
+SEC("xdp_firewall")
+int firewall(struct xdp_md *ctx) {
+
+	bpf_printk("hello from scmlb firewall!");
 	return XDP_PASS;
 }
 
