@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/terassyi/seccamp-xdp/scmlb"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/api"
+	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/fw"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/stat"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 )
@@ -28,8 +29,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&api.Endpoint, "endpoint", constants.API_SERVER_ENDPOINT, "endpoint for API server")
 	rootCmd.PersistentFlags().IntVar(&api.Port, "port", int(constants.API_SERVER_PORT), "endpoint's port for API server")
 
-	// $ scmlbd start で呼び出される start サブコマンドを登録しています
+	// $ scmlb stat で呼び出される stat サブコマンドを登録しています
 	rootCmd.AddCommand(&stat.StatCmd)
+	// $ scmlb fw で呼び出される fire wall サブコマンドを登録しています
+	rootCmd.AddCommand(&fw.FwCmd)
 }
 
 func main() {

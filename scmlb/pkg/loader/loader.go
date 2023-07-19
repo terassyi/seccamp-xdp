@@ -19,14 +19,18 @@ import (
 const (
 	PROG_NAME_ENTRYPOINY = "entrypoint"
 	PROG_NAME_COUNT      = "count"
+	PROG_NAME_FIREWALL   = "firewall"
 
-	MAP_NAME_CALLS_MAP = "calls_map"
-	MAP_NAME_COUNTER   = "counter"
+	MAP_NAME_CALLS_MAP    = "calls_map"
+	MAP_NAME_COUNTER      = "counter"
+	MAP_NAME_RULES        = "rules"
+	MAP_NAME_DROP_COUNTER = "drop_counter"
 )
 
 // tail call のための calls_map にデータを反映させるための map を定義しています。
 var tailCalledPrograms = map[uint32]string{
 	0: PROG_NAME_COUNT,
+	1: PROG_NAME_FIREWALL,
 }
 
 // bpf/xdp.c から生成した関数やマップの情報を保持する構造体
@@ -52,9 +56,12 @@ func Load(logger slog.Logger) (*Loader, error) {
 
 	programs[PROG_NAME_ENTRYPOINY] = objects.Entrypoint
 	programs[PROG_NAME_COUNT] = objects.Count
+	programs[PROG_NAME_FIREWALL] = objects.Firewall
 
 	maps[MAP_NAME_CALLS_MAP] = objects.CallsMap
 	maps[MAP_NAME_COUNTER] = objects.Counter
+	maps[MAP_NAME_RULES] = objects.Rules
+	maps[MAP_NAME_DROP_COUNTER] = objects.DropCounter
 
 	return &Loader{
 		logger:   logger,
@@ -124,6 +131,7 @@ func (l *Loader) RegisterTailCall() error {
 			l.logger.Error("failed to register tail called program", err, slog.Int("array_index", int(k)), slog.String("name", v), slog.Int("program_fd", l.Programs[v].FD()))
 			return err
 		}
+		l.logger.Info("register tail called function", slog.String("name", v), slog.Int("index", int(k)))
 	}
 	return nil
 }
@@ -134,9 +142,9 @@ func (l *Loader) registerTailCall(index uint32, programName string) error {
 		return fmt.Errorf("calls_map is not found")
 	}
 
-	callee, ok := l.Programs[PROG_NAME_COUNT]
+	callee, ok := l.Programs[programName]
 	if !ok {
-		return fmt.Errorf("%s is not found", MAP_NAME_COUNTER)
+		return fmt.Errorf("%s is not found", programName)
 	}
 
 	// calls_map に登録したいインデックス番号とそのプログラムへのファイルディスクリプタの値をマップに登録することで tail call 呼び出しが可能になります。

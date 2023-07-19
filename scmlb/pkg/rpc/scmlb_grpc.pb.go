@@ -20,8 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ScmLbApi_Health_FullMethodName = "/scmlb.v1.ScmLbApi/Health"
-	ScmLbApi_Stat_FullMethodName   = "/scmlb.v1.ScmLbApi/Stat"
+	ScmLbApi_Health_FullMethodName             = "/scmlb.v1.ScmLbApi/Health"
+	ScmLbApi_Stat_FullMethodName               = "/scmlb.v1.ScmLbApi/Stat"
+	ScmLbApi_FireWallRuleSet_FullMethodName    = "/scmlb.v1.ScmLbApi/FireWallRuleSet"
+	ScmLbApi_FireWallRuleGet_FullMethodName    = "/scmlb.v1.ScmLbApi/FireWallRuleGet"
+	ScmLbApi_FireWallRuleDelete_FullMethodName = "/scmlb.v1.ScmLbApi/FireWallRuleDelete"
 )
 
 // ScmLbApiClient is the client API for ScmLbApi service.
@@ -30,6 +33,9 @@ const (
 type ScmLbApiClient interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Stat(ctx context.Context, in *StatRequest, opts ...grpc.CallOption) (*StatResponse, error)
+	FireWallRuleSet(ctx context.Context, in *FireWallRuleSetRqeust, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	FireWallRuleGet(ctx context.Context, in *FireWallRuleGetRequest, opts ...grpc.CallOption) (*FireWallRuleGetResponse, error)
+	FireWallRuleDelete(ctx context.Context, in *FireWallRuleDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type scmLbApiClient struct {
@@ -58,12 +64,42 @@ func (c *scmLbApiClient) Stat(ctx context.Context, in *StatRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *scmLbApiClient) FireWallRuleSet(ctx context.Context, in *FireWallRuleSetRqeust, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_FireWallRuleSet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) FireWallRuleGet(ctx context.Context, in *FireWallRuleGetRequest, opts ...grpc.CallOption) (*FireWallRuleGetResponse, error) {
+	out := new(FireWallRuleGetResponse)
+	err := c.cc.Invoke(ctx, ScmLbApi_FireWallRuleGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) FireWallRuleDelete(ctx context.Context, in *FireWallRuleDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_FireWallRuleDelete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScmLbApiServer is the server API for ScmLbApi service.
 // All implementations must embed UnimplementedScmLbApiServer
 // for forward compatibility
 type ScmLbApiServer interface {
 	Health(context.Context, *HealthRequest) (*emptypb.Empty, error)
 	Stat(context.Context, *StatRequest) (*StatResponse, error)
+	FireWallRuleSet(context.Context, *FireWallRuleSetRqeust) (*emptypb.Empty, error)
+	FireWallRuleGet(context.Context, *FireWallRuleGetRequest) (*FireWallRuleGetResponse, error)
+	FireWallRuleDelete(context.Context, *FireWallRuleDeleteRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedScmLbApiServer()
 }
 
@@ -76,6 +112,15 @@ func (UnimplementedScmLbApiServer) Health(context.Context, *HealthRequest) (*emp
 }
 func (UnimplementedScmLbApiServer) Stat(context.Context, *StatRequest) (*StatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stat not implemented")
+}
+func (UnimplementedScmLbApiServer) FireWallRuleSet(context.Context, *FireWallRuleSetRqeust) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FireWallRuleSet not implemented")
+}
+func (UnimplementedScmLbApiServer) FireWallRuleGet(context.Context, *FireWallRuleGetRequest) (*FireWallRuleGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FireWallRuleGet not implemented")
+}
+func (UnimplementedScmLbApiServer) FireWallRuleDelete(context.Context, *FireWallRuleDeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FireWallRuleDelete not implemented")
 }
 func (UnimplementedScmLbApiServer) mustEmbedUnimplementedScmLbApiServer() {}
 
@@ -126,6 +171,60 @@ func _ScmLbApi_Stat_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScmLbApi_FireWallRuleSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FireWallRuleSetRqeust)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).FireWallRuleSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_FireWallRuleSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).FireWallRuleSet(ctx, req.(*FireWallRuleSetRqeust))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_FireWallRuleGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FireWallRuleGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).FireWallRuleGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_FireWallRuleGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).FireWallRuleGet(ctx, req.(*FireWallRuleGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_FireWallRuleDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FireWallRuleDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).FireWallRuleDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_FireWallRuleDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).FireWallRuleDelete(ctx, req.(*FireWallRuleDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScmLbApi_ServiceDesc is the grpc.ServiceDesc for ScmLbApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -140,6 +239,18 @@ var ScmLbApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stat",
 			Handler:    _ScmLbApi_Stat_Handler,
+		},
+		{
+			MethodName: "FireWallRuleSet",
+			Handler:    _ScmLbApi_FireWallRuleSet_Handler,
+		},
+		{
+			MethodName: "FireWallRuleGet",
+			Handler:    _ScmLbApi_FireWallRuleGet_Handler,
+		},
+		{
+			MethodName: "FireWallRuleDelete",
+			Handler:    _ScmLbApi_FireWallRuleDelete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
