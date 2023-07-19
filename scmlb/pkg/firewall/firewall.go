@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cilium/ebpf"
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/protocols"
 	"golang.org/x/exp/slog"
 )
@@ -34,23 +35,27 @@ type fwRule struct {
 }
 
 type FwManager struct {
-	logger      *slog.Logger
-	mu          *sync.Mutex
-	rules       map[uint32]FWRule
-	nextId      uint32
-	p           *ebpf.Program
-	ruleMap     *ebpf.Map
-	dropCounter *ebpf.Map
+	logger         *slog.Logger
+	mu             *sync.Mutex
+	rules          map[uint32]FWRule
+	nextId         uint32
+	p              *ebpf.Program
+	ruleMap        *ebpf.Map
+	dropCounter    *ebpf.Map
+	advRuleMatcher *ebpf.Map
+	advRuleMap     *ebpf.Map
 }
 
-func NewManager(logger *slog.Logger, p *ebpf.Program, ruleMap, dropCounter *ebpf.Map) *FwManager {
+func NewManager(logger *slog.Logger, p *ebpf.Program, ruleMap, dropCounter, advRuleMatcher, advRuleMap *ebpf.Map) *FwManager {
 	return &FwManager{
-		logger:      logger,
-		mu:          &sync.Mutex{},
-		rules:       make(map[uint32]FWRule),
-		nextId:      0,
-		ruleMap:     ruleMap,
-		dropCounter: dropCounter,
+		logger:         logger,
+		mu:             &sync.Mutex{},
+		rules:          make(map[uint32]FWRule),
+		nextId:         1,
+		ruleMap:        ruleMap,
+		dropCounter:    dropCounter,
+		advRuleMatcher: advRuleMatcher,
+		advRuleMap:     advRuleMap,
 	}
 }
 
@@ -65,9 +70,35 @@ func (f *FwManager) Set(rule *FWRule) error {
 	// ここで eBPF マップにルールを追加します
 
 	nw, r := rule.splitKeyValue()
-	// nv := nw.toUint64()
 	if err := f.ruleMap.Update(nw, r, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
+		return err
+	}
+
+	// port や protocol を考慮した fire wall のためのコード
+	var ids [constants.ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK]uint16
+
+	if err := f.advRuleMatcher.Lookup(nw, &ids); err != nil {
+		f.logger.Error("failed to lookup rule matcher", err, slog.Any("rule", rule))
+	}
+
+	f.logger.Debug("ids", slog.Any("ids", ids))
+
+	for i := 0; i < constants.ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK; i++ {
+		if ids[i] == 0 {
+			ids[i] = uint16(rule.Id)
+			break
+		}
+	}
+
+	f.logger.Debug("update rule matcher", slog.String("network", rule.Prefix.String()), slog.Any("ids", ids))
+	if err := f.advRuleMatcher.Update(nw, &ids, ebpf.UpdateAny); err != nil {
+		f.logger.Error("failed to update rule matcher", err, slog.Any("rule", rule), slog.Any("ids", ids))
+		return err
+	}
+
+	if err := f.advRuleMap.Update(rule.Id, r, ebpf.UpdateAny); err != nil {
+		f.logger.Error("failed to update advanced rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
 		return err
 	}
 
@@ -116,6 +147,37 @@ func (f *FwManager) Delete(id uint32) error {
 		return err
 	}
 	if err := f.dropCounter.Delete(id); err != nil {
+		f.logger.Warn("failed to delete a drop counter entry", slog.Int("id", int(id)))
+	}
+
+	// port と protocol を考慮した fire wall のためのコード
+	var ids [constants.ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK]uint16
+
+	if err := f.advRuleMatcher.Lookup(nw, &ids); err != nil {
+		f.logger.Error("failed to lookup rule matcher", err, slog.Any("rule", rule))
+	}
+
+	f.logger.Debug("ids", slog.Any("ids", ids))
+
+	var newIds [constants.ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK]uint16
+	index := 0
+
+	for i := 0; i < constants.ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK; i++ {
+		if ids[i] != uint16(id) && ids[i] != 0 {
+			newIds[index] = ids[i]
+			index += 1
+		}
+	}
+
+	f.logger.Debug("update rule matcher", slog.String("network", rule.Prefix.String()), slog.Any("ids", ids))
+	if err := f.advRuleMatcher.Update(nw, &ids, ebpf.UpdateAny); err != nil {
+		f.logger.Error("failed to update rule matcher", err, slog.Any("rule", rule), slog.Any("ids", ids))
+		return err
+	}
+
+	f.logger.Info("delete rule", slog.Int("id", int(id)), slog.Any("rule", rule))
+	if err := f.advRuleMap.Delete(rule.Id); err != nil {
+		f.logger.Error("failed to update advanced rule map", err, slog.Int("id", int(id)), slog.String("network", rule.Prefix.String()))
 		return err
 	}
 
