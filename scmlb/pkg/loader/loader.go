@@ -13,7 +13,7 @@ import (
 // $ go generate を実行すると下に記述したコマンドが実行されます。
 // ここでは bpf2go というプログラムを go コマンドを経由して実行しています。
 // bpf2go は eBPF プログラムをコンパイルして ELF ファイルを生成したあと、go 言語から扱えるように go 言語のコードを自動生成してくれます。
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang XdpProg ../../bpf/xdp.c -- -I../../bpf/include
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang XdpProg ../../bpf/xdp.c -g -- -I../../bpf/include
 
 // bpf/xdp.c で定義された関数とマップのシンボルを定数として定義しています(使い回しがきくように)
 const (
@@ -21,10 +21,12 @@ const (
 	PROG_NAME_COUNT      = "count"
 	PROG_NAME_FIREWALL   = "firewall"
 
-	MAP_NAME_CALLS_MAP    = "calls_map"
-	MAP_NAME_COUNTER      = "counter"
-	MAP_NAME_RULES        = "rules"
-	MAP_NAME_DROP_COUNTER = "drop_counter"
+	MAP_NAME_CALLS_MAP        = "calls_map"
+	MAP_NAME_COUNTER          = "counter"
+	MAP_NAME_RULES            = "rules"
+	MAP_NAME_DROP_COUNTER     = "drop_counter"
+	MAP_NAME_ADV_RULE_MATCHER = "adv_rulematcher"
+	MAP_NAME_ADV_RULES        = "adv_rules"
 )
 
 // tail call のための calls_map にデータを反映させるための map を定義しています。
@@ -47,7 +49,17 @@ func Load(logger slog.Logger) (*Loader, error) {
 	logger.Info("load XDP programs")
 	objects := XdpProgObjects{}
 	// LoadXdpProgObjects() は bpf2go で自動生成された関数で、これを実行することで eBPF プログラムをカーネルにロードすることができます
-	if err := LoadXdpProgObjects(&objects, nil); err != nil {
+	if err := LoadXdpProgObjects(&objects, &ebpf.CollectionOptions{
+		Programs: ebpf.ProgramOptions{
+			LogLevel: ebpf.LogLevelInstruction,
+			LogSize:  ebpf.DefaultVerifierLogSize * 16,
+		},
+	}); err != nil {
+		var ve *ebpf.VerifierError
+		if errors.As(err, &ve) {
+			fmt.Printf("Verifier error: %+v\n", ve)
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -62,6 +74,8 @@ func Load(logger slog.Logger) (*Loader, error) {
 	maps[MAP_NAME_COUNTER] = objects.Counter
 	maps[MAP_NAME_RULES] = objects.Rules
 	maps[MAP_NAME_DROP_COUNTER] = objects.DropCounter
+	maps[MAP_NAME_ADV_RULE_MATCHER] = objects.AdvRulematcher
+	maps[MAP_NAME_ADV_RULES] = objects.AdvRules
 
 	return &Loader{
 		logger:   logger,

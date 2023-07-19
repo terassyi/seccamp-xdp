@@ -153,7 +153,17 @@ func (d *Daemon) setupFirewall(l *loader.Loader) error {
 	if !ok {
 		return fmt.Errorf("failed to find drop_counter")
 	}
-	f := firewall.NewManager(d.logger, p, rm, dm)
+	arm, ok := l.Maps[loader.MAP_NAME_ADV_RULE_MATCHER]
+	if !ok {
+		return fmt.Errorf("failed to find adv_rulematcher")
+	}
+	ar, ok := l.Maps[loader.MAP_NAME_ADV_RULES]
+	if !ok {
+		return fmt.Errorf("failed to find adv_rules")
+	}
+
+	f := firewall.NewManager(d.logger, p, rm, dm, arm, ar)
 	d.fw = f
+
 	return nil
 }

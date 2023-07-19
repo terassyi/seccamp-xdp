@@ -11,6 +11,10 @@ const (
 	PROTOCOL_UDP  uint32 = 17
 )
 
+const (
+	ADVANCED_FIRE_WALL_MAX_SIZE_PER_NETWORK = 16
+)
+
 var (
 	LogOutput string = "stdout"
 	LogLevel  int    = 0
