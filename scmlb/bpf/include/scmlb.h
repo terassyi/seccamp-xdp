@@ -7,8 +7,10 @@ struct network {
 
 struct fw_rule {
 	u32 id;
-	u16 from_port;
-	u16 to_port;
+	u16 from_src_port;
+	u16 to_src_port;
+	u16 from_dst_port;
+	u16 to_dst_port;
 	u32 protocol;
 };
 

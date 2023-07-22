@@ -55,10 +55,12 @@ message FireWallRuleDeleteRequest {
 message FireWallRule {
 	int32 id = 1;
 	string prefix = 2;
-	int32 from_port = 3;
-	int32 to_port = 4;
-	int32 protocol = 5;
-	int64 count = 6;
+	int32 from_src_port = 3;
+	int32 to_src_port = 4;
+	int32 from_dst_port = 5;
+	int32 to_dst_port = 6;
+	int32 protocol = 7;
+	int64 count = 8;
 }
 
 message DoSProtectionPolicySetRequest {

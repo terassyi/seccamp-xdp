@@ -49,11 +49,11 @@ func executeGet(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		data = append(data, []string{strconv.Itoa(int(r.Id)), r.Prefix, strconv.Itoa(int(r.FromPort)), strconv.Itoa(int(r.ToPort)), proto.String(), strconv.Itoa(int(r.Count))})
+		data = append(data, []string{strconv.Itoa(int(r.Id)), r.Prefix, strconv.Itoa(int(r.FromSrcPort)), strconv.Itoa(int(r.ToSrcPort)), strconv.Itoa(int(r.FromDstPort)), strconv.Itoa(int(r.ToDstPort)), proto.String(), strconv.Itoa(int(r.Count))})
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"id", "network", "fromport", "toport", "protocol", "dropped"})
+	table.SetHeader([]string{"id", "network", "srcfromport", "srctoport", "dstfromport", "dsttoport", "protocol", "dropped"})
 	table.SetAutoWrapText(false)
 	table.SetAutoFormatHeaders(true)
 	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
