@@ -11,6 +11,15 @@
 #define IP_PROTO_TCP 6
 #define IP_PROTO_UDP 17 
 
+#define TCP_FLAG_FIN 1
+#define TCP_FLAG_SYN 2
+#define TCP_FLAG_RST 4
+#define TCP_FLAG_PSH 8
+#define TCP_FLAG_ACK 16
+#define TCP_FLAG_URG 32
+#define TCP_FLAG_ECE 64
+#define TCP_FLAG_CWR 128
+
 // ルールに対して与えたプロトコル番号とポートが対象のとき 1 を返して、それ以外の場合は 0 を返す関数です
 int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port) {
 
@@ -59,8 +68,23 @@ int firewall(struct xdp_md *ctx) {
 	
 	// ここに firewall のロジックを記述します。
 
-	
+
+	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_DOS_PROTECTOR);
 	return XDP_PASS;
+}
+
+SEC("xdp_dos_protector")
+int dos_protector(struct xdp_md *ctx) {
+
+	// DoS protection の機能では XDP プログラムでは DoS 攻撃かの判断はしません。
+	// ここでは単にどのようなパケットがどのくらい受信されたかをカウントしてマップに保存します。
+	// カウントした値を control plane (Go のプログラム) の方から検査して受信したパケットの数に不審な点があれば、
+	// 一つ前の Fire wall にルールを追加してパケットの受信をブロックします。
+
+	bpf_printk("hello from scmlb dos protector!");
+
+	return XDP_PASS;
+
 }
 
 SEC("xdp_entry")
