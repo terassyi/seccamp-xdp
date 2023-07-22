@@ -12,6 +12,9 @@ service ScmLbApi {
 	rpc FireWallRuleSet(FireWallRuleSetRqeust) returns (google.protobuf.Empty);
 	rpc FireWallRuleGet(FireWallRuleGetRequest) returns (FireWallRuleGetResponse);
 	rpc FireWallRuleDelete(FireWallRuleDeleteRequest) returns (google.protobuf.Empty);
+	rpc DoSProtectionPolicySet(DoSProtectionPolicySetRequest) returns (google.protobuf.Empty);
+	rpc DoSProtectionPolicyGet(DoSProtectionPolicyGetRequest) returns (DoSProtectionPolicyGetResponse);
+	rpc DoSProtectionPolicyDelete(DoSProtectionPolicyDeleteRequest) returns (google.protobuf.Empty);
 }
 
 message HealthRequest {}
@@ -56,4 +59,27 @@ message FireWallRule {
 	int32 to_port = 4;
 	int32 protocol = 5;
 	int64 count = 6;
+}
+
+message DoSProtectionPolicySetRequest {
+	DoSProtectionPolicy policy = 1;
+}
+
+message DoSProtectionPolicyGetRequest {}
+
+message DoSProtectionPolicyGetResponse {
+	repeated DoSProtectionPolicy policies = 1;
+}
+
+message DoSProtectionPolicyDeleteRequest {
+	int32 id = 1;
+}
+
+message DoSProtectionPolicy {
+	int32 id = 1;
+	int32 protocol = 2;
+	string type = 3;
+	int64 limit = 5;
+	int32 status = 6;
+	repeated int32 fw_rule_ids = 7;
 }

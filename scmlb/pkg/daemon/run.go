@@ -10,6 +10,7 @@ import (
 
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/counter"
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/dosprotector"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/firewall"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/loader"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/logger"
@@ -27,8 +28,9 @@ type Daemon struct {
 	upstream  string
 	rpc.UnimplementedScmLbApiServer
 
-	counter *counter.Counter
-	fw      *firewall.FwManager
+	counter      *counter.Counter
+	fw           *firewall.FwManager
+	dosProtector *dosprotector.DoSProtector
 }
 
 func New(apiAddr string, apiPort int32, upstreamInterface string) (*Daemon, error) {
@@ -101,6 +103,10 @@ func (d *Daemon) Run() error {
 	if err := d.setupFirewall(loader); err != nil {
 		return err
 	}
+	d.logger.InfoCtx(ctx, "setup DoS protector")
+	if err := d.setupDoSProtector(ctx, loader, d.fw); err != nil {
+		return err
+	}
 
 	// ロードしたプログラムを NIC にアタッチします
 	if err := loader.Attach(d.upstream); err != nil {
@@ -164,6 +170,30 @@ func (d *Daemon) setupFirewall(l *loader.Loader) error {
 
 	f := firewall.NewManager(d.logger, p, rm, dm, arm, ar)
 	d.fw = f
+
+	return nil
+}
+
+func (d *Daemon) setupDoSProtector(ctx context.Context, l *loader.Loader, fwManager *firewall.FwManager) error {
+
+	counter, ok := l.Maps[loader.MAP_NAME_DOSP_COUNTER]
+	if !ok {
+		return fmt.Errorf("failed to find policies map")
+	}
+
+	p, err := dosprotector.New(fwManager, counter)
+	if err != nil {
+		return err
+	}
+
+	d.dosProtector = p
+
+	d.logger.InfoCtx(ctx, "start DoS protector loop")
+	go func() {
+		if err := d.dosProtector.Run(ctx); err != nil {
+			panic(err)
+		}
+	}()
 
 	return nil
 }
