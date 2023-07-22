@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/terassyi/seccamp-xdp/scmlb"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/api"
+	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/dosprotection"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/fw"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/stat"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
@@ -33,6 +34,8 @@ func init() {
 	rootCmd.AddCommand(&stat.StatCmd)
 	// $ scmlb fw で呼び出される fire wall サブコマンドを登録しています
 	rootCmd.AddCommand(&fw.FwCmd)
+	// $ scmlb dos-protection で呼び出される dos protection サブコマンドを登録しています
+	rootCmd.AddCommand(&dosprotection.DoSProtectionCmd)
 }
 
 func main() {

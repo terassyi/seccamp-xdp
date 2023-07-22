@@ -20,11 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ScmLbApi_Health_FullMethodName             = "/scmlb.v1.ScmLbApi/Health"
-	ScmLbApi_Stat_FullMethodName               = "/scmlb.v1.ScmLbApi/Stat"
-	ScmLbApi_FireWallRuleSet_FullMethodName    = "/scmlb.v1.ScmLbApi/FireWallRuleSet"
-	ScmLbApi_FireWallRuleGet_FullMethodName    = "/scmlb.v1.ScmLbApi/FireWallRuleGet"
-	ScmLbApi_FireWallRuleDelete_FullMethodName = "/scmlb.v1.ScmLbApi/FireWallRuleDelete"
+	ScmLbApi_Health_FullMethodName                    = "/scmlb.v1.ScmLbApi/Health"
+	ScmLbApi_Stat_FullMethodName                      = "/scmlb.v1.ScmLbApi/Stat"
+	ScmLbApi_FireWallRuleSet_FullMethodName           = "/scmlb.v1.ScmLbApi/FireWallRuleSet"
+	ScmLbApi_FireWallRuleGet_FullMethodName           = "/scmlb.v1.ScmLbApi/FireWallRuleGet"
+	ScmLbApi_FireWallRuleDelete_FullMethodName        = "/scmlb.v1.ScmLbApi/FireWallRuleDelete"
+	ScmLbApi_DoSProtectionPolicySet_FullMethodName    = "/scmlb.v1.ScmLbApi/DoSProtectionPolicySet"
+	ScmLbApi_DoSProtectionPolicyGet_FullMethodName    = "/scmlb.v1.ScmLbApi/DoSProtectionPolicyGet"
+	ScmLbApi_DoSProtectionPolicyDelete_FullMethodName = "/scmlb.v1.ScmLbApi/DoSProtectionPolicyDelete"
 )
 
 // ScmLbApiClient is the client API for ScmLbApi service.
@@ -36,6 +39,9 @@ type ScmLbApiClient interface {
 	FireWallRuleSet(ctx context.Context, in *FireWallRuleSetRqeust, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	FireWallRuleGet(ctx context.Context, in *FireWallRuleGetRequest, opts ...grpc.CallOption) (*FireWallRuleGetResponse, error)
 	FireWallRuleDelete(ctx context.Context, in *FireWallRuleDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DoSProtectionPolicySet(ctx context.Context, in *DoSProtectionPolicySetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DoSProtectionPolicyGet(ctx context.Context, in *DoSProtectionPolicyGetRequest, opts ...grpc.CallOption) (*DoSProtectionPolicyGetResponse, error)
+	DoSProtectionPolicyDelete(ctx context.Context, in *DoSProtectionPolicyDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type scmLbApiClient struct {
@@ -91,6 +97,33 @@ func (c *scmLbApiClient) FireWallRuleDelete(ctx context.Context, in *FireWallRul
 	return out, nil
 }
 
+func (c *scmLbApiClient) DoSProtectionPolicySet(ctx context.Context, in *DoSProtectionPolicySetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_DoSProtectionPolicySet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) DoSProtectionPolicyGet(ctx context.Context, in *DoSProtectionPolicyGetRequest, opts ...grpc.CallOption) (*DoSProtectionPolicyGetResponse, error) {
+	out := new(DoSProtectionPolicyGetResponse)
+	err := c.cc.Invoke(ctx, ScmLbApi_DoSProtectionPolicyGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) DoSProtectionPolicyDelete(ctx context.Context, in *DoSProtectionPolicyDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_DoSProtectionPolicyDelete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScmLbApiServer is the server API for ScmLbApi service.
 // All implementations must embed UnimplementedScmLbApiServer
 // for forward compatibility
@@ -100,6 +133,9 @@ type ScmLbApiServer interface {
 	FireWallRuleSet(context.Context, *FireWallRuleSetRqeust) (*emptypb.Empty, error)
 	FireWallRuleGet(context.Context, *FireWallRuleGetRequest) (*FireWallRuleGetResponse, error)
 	FireWallRuleDelete(context.Context, *FireWallRuleDeleteRequest) (*emptypb.Empty, error)
+	DoSProtectionPolicySet(context.Context, *DoSProtectionPolicySetRequest) (*emptypb.Empty, error)
+	DoSProtectionPolicyGet(context.Context, *DoSProtectionPolicyGetRequest) (*DoSProtectionPolicyGetResponse, error)
+	DoSProtectionPolicyDelete(context.Context, *DoSProtectionPolicyDeleteRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedScmLbApiServer()
 }
 
@@ -121,6 +157,15 @@ func (UnimplementedScmLbApiServer) FireWallRuleGet(context.Context, *FireWallRul
 }
 func (UnimplementedScmLbApiServer) FireWallRuleDelete(context.Context, *FireWallRuleDeleteRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FireWallRuleDelete not implemented")
+}
+func (UnimplementedScmLbApiServer) DoSProtectionPolicySet(context.Context, *DoSProtectionPolicySetRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DoSProtectionPolicySet not implemented")
+}
+func (UnimplementedScmLbApiServer) DoSProtectionPolicyGet(context.Context, *DoSProtectionPolicyGetRequest) (*DoSProtectionPolicyGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DoSProtectionPolicyGet not implemented")
+}
+func (UnimplementedScmLbApiServer) DoSProtectionPolicyDelete(context.Context, *DoSProtectionPolicyDeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DoSProtectionPolicyDelete not implemented")
 }
 func (UnimplementedScmLbApiServer) mustEmbedUnimplementedScmLbApiServer() {}
 
@@ -225,6 +270,60 @@ func _ScmLbApi_FireWallRuleDelete_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScmLbApi_DoSProtectionPolicySet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DoSProtectionPolicySetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).DoSProtectionPolicySet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_DoSProtectionPolicySet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).DoSProtectionPolicySet(ctx, req.(*DoSProtectionPolicySetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_DoSProtectionPolicyGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DoSProtectionPolicyGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).DoSProtectionPolicyGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_DoSProtectionPolicyGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).DoSProtectionPolicyGet(ctx, req.(*DoSProtectionPolicyGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_DoSProtectionPolicyDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DoSProtectionPolicyDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).DoSProtectionPolicyDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_DoSProtectionPolicyDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).DoSProtectionPolicyDelete(ctx, req.(*DoSProtectionPolicyDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScmLbApi_ServiceDesc is the grpc.ServiceDesc for ScmLbApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -251,6 +350,18 @@ var ScmLbApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FireWallRuleDelete",
 			Handler:    _ScmLbApi_FireWallRuleDelete_Handler,
+		},
+		{
+			MethodName: "DoSProtectionPolicySet",
+			Handler:    _ScmLbApi_DoSProtectionPolicySet_Handler,
+		},
+		{
+			MethodName: "DoSProtectionPolicyGet",
+			Handler:    _ScmLbApi_DoSProtectionPolicyGet_Handler,
+		},
+		{
+			MethodName: "DoSProtectionPolicyDelete",
+			Handler:    _ScmLbApi_DoSProtectionPolicyDelete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

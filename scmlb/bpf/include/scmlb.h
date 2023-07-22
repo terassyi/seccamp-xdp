@@ -11,3 +11,9 @@ struct fw_rule {
 	u16 to_port;
 	u32 protocol;
 };
+
+struct dos_protection_identifier {
+	u32 address;
+	u8 protocol;
+	u8 packet_type;
+};

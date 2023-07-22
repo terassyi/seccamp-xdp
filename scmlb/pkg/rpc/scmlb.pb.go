@@ -544,6 +544,272 @@ func (x *FireWallRule) GetCount() int64 {
 	return 0
 }
 
+type DoSProtectionPolicySetRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Policy *DoSProtectionPolicy `protobuf:"bytes,1,opt,name=policy,proto3" json:"policy,omitempty"`
+}
+
+func (x *DoSProtectionPolicySetRequest) Reset() {
+	*x = DoSProtectionPolicySetRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protobuf_scmlb_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DoSProtectionPolicySetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DoSProtectionPolicySetRequest) ProtoMessage() {}
+
+func (x *DoSProtectionPolicySetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_scmlb_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DoSProtectionPolicySetRequest.ProtoReflect.Descriptor instead.
+func (*DoSProtectionPolicySetRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_scmlb_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DoSProtectionPolicySetRequest) GetPolicy() *DoSProtectionPolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+type DoSProtectionPolicyGetRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *DoSProtectionPolicyGetRequest) Reset() {
+	*x = DoSProtectionPolicyGetRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protobuf_scmlb_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DoSProtectionPolicyGetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DoSProtectionPolicyGetRequest) ProtoMessage() {}
+
+func (x *DoSProtectionPolicyGetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_scmlb_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DoSProtectionPolicyGetRequest.ProtoReflect.Descriptor instead.
+func (*DoSProtectionPolicyGetRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_scmlb_proto_rawDescGZIP(), []int{11}
+}
+
+type DoSProtectionPolicyGetResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Policies []*DoSProtectionPolicy `protobuf:"bytes,1,rep,name=policies,proto3" json:"policies,omitempty"`
+}
+
+func (x *DoSProtectionPolicyGetResponse) Reset() {
+	*x = DoSProtectionPolicyGetResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protobuf_scmlb_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DoSProtectionPolicyGetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DoSProtectionPolicyGetResponse) ProtoMessage() {}
+
+func (x *DoSProtectionPolicyGetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_scmlb_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DoSProtectionPolicyGetResponse.ProtoReflect.Descriptor instead.
+func (*DoSProtectionPolicyGetResponse) Descriptor() ([]byte, []int) {
+	return file_protobuf_scmlb_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DoSProtectionPolicyGetResponse) GetPolicies() []*DoSProtectionPolicy {
+	if x != nil {
+		return x.Policies
+	}
+	return nil
+}
+
+type DoSProtectionPolicyDeleteRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id int32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *DoSProtectionPolicyDeleteRequest) Reset() {
+	*x = DoSProtectionPolicyDeleteRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protobuf_scmlb_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DoSProtectionPolicyDeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DoSProtectionPolicyDeleteRequest) ProtoMessage() {}
+
+func (x *DoSProtectionPolicyDeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_scmlb_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DoSProtectionPolicyDeleteRequest.ProtoReflect.Descriptor instead.
+func (*DoSProtectionPolicyDeleteRequest) Descriptor() ([]byte, []int) {
+	return file_protobuf_scmlb_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *DoSProtectionPolicyDeleteRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type DoSProtectionPolicy struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id        int32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Protocol  int32   `protobuf:"varint,2,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Type      string  `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Limit     int64   `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	Status    int32   `protobuf:"varint,6,opt,name=status,proto3" json:"status,omitempty"`
+	FwRuleIds []int32 `protobuf:"varint,7,rep,packed,name=fw_rule_ids,json=fwRuleIds,proto3" json:"fw_rule_ids,omitempty"`
+}
+
+func (x *DoSProtectionPolicy) Reset() {
+	*x = DoSProtectionPolicy{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protobuf_scmlb_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DoSProtectionPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DoSProtectionPolicy) ProtoMessage() {}
+
+func (x *DoSProtectionPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_protobuf_scmlb_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DoSProtectionPolicy.ProtoReflect.Descriptor instead.
+func (*DoSProtectionPolicy) Descriptor() ([]byte, []int) {
+	return file_protobuf_scmlb_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DoSProtectionPolicy) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *DoSProtectionPolicy) GetProtocol() int32 {
+	if x != nil {
+		return x.Protocol
+	}
+	return 0
+}
+
+func (x *DoSProtectionPolicy) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *DoSProtectionPolicy) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *DoSProtectionPolicy) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *DoSProtectionPolicy) GetFwRuleIds() []int32 {
+	if x != nil {
+		return x.FwRuleIds
+	}
+	return nil
+}
+
 var File_protobuf_scmlb_proto protoreflect.FileDescriptor
 
 var file_protobuf_scmlb_proto_rawDesc = []byte{
@@ -593,7 +859,34 @@ var file_protobuf_scmlb_proto_rawDesc = []byte{
 	0x0a, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x18, 0x05, 0x20, 0x01, 0x28, 0x05,
 	0x52, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f,
 	0x75, 0x6e, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x03, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74,
-	0x32, 0xf3, 0x02, 0x0a, 0x08, 0x53, 0x63, 0x6d, 0x4c, 0x62, 0x41, 0x70, 0x69, 0x12, 0x39, 0x0a,
+	0x22, 0x56, 0x0a, 0x1d, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f,
+	0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x53, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x35, 0x0a, 0x06, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x1d, 0x2e, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x6f, 0x53,
+	0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79,
+	0x52, 0x06, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x22, 0x1f, 0x0a, 0x1d, 0x44, 0x6f, 0x53, 0x50,
+	0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x47,
+	0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x5b, 0x0a, 0x1e, 0x44, 0x6f, 0x53,
+	0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79,
+	0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x39, 0x0a, 0x08, 0x70,
+	0x6f, 0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1d, 0x2e,
+	0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74,
+	0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x52, 0x08, 0x70, 0x6f,
+	0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x22, 0x32, 0x0a, 0x20, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f,
+	0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x44, 0x65, 0x6c,
+	0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x02, 0x69, 0x64, 0x22, 0xa3, 0x01, 0x0a, 0x13, 0x44,
+	0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69,
+	0x63, 0x79, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x02,
+	0x69, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x12, 0x12,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79,
+	0x70, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x18, 0x06, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
+	0x12, 0x1e, 0x0a, 0x0b, 0x66, 0x77, 0x5f, 0x72, 0x75, 0x6c, 0x65, 0x5f, 0x69, 0x64, 0x73, 0x18,
+	0x07, 0x20, 0x03, 0x28, 0x05, 0x52, 0x09, 0x66, 0x77, 0x52, 0x75, 0x6c, 0x65, 0x49, 0x64, 0x73,
+	0x32, 0x9c, 0x05, 0x0a, 0x08, 0x53, 0x63, 0x6d, 0x4c, 0x62, 0x41, 0x70, 0x69, 0x12, 0x39, 0x0a,
 	0x06, 0x48, 0x65, 0x61, 0x6c, 0x74, 0x68, 0x12, 0x17, 0x2e, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2e,
 	0x76, 0x31, 0x2e, 0x48, 0x65, 0x61, 0x6c, 0x74, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62,
@@ -616,10 +909,29 @@ var file_protobuf_scmlb_proto_rawDesc = []byte{
 	0x62, 0x2e, 0x76, 0x31, 0x2e, 0x46, 0x69, 0x72, 0x65, 0x57, 0x61, 0x6c, 0x6c, 0x52, 0x75, 0x6c,
 	0x65, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16,
 	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
-	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x65, 0x72, 0x61, 0x73, 0x73, 0x79, 0x69, 0x2f, 0x73, 0x65,
-	0x63, 0x63, 0x61, 0x6d, 0x70, 0x2d, 0x78, 0x64, 0x70, 0x2f, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2f,
-	0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x59, 0x0a, 0x16, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f,
+	0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x53, 0x65, 0x74,
+	0x12, 0x27, 0x2e, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x6f, 0x53, 0x50,
+	0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x53,
+	0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67,
+	0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74,
+	0x79, 0x12, 0x6b, 0x0a, 0x16, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69,
+	0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x47, 0x65, 0x74, 0x12, 0x27, 0x2e, 0x73, 0x63,
+	0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63,
+	0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x47, 0x65, 0x74, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e,
+	0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c,
+	0x69, 0x63, 0x79, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5f,
+	0x0a, 0x19, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x50,
+	0x6f, 0x6c, 0x69, 0x63, 0x79, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x12, 0x2a, 0x2e, 0x73, 0x63,
+	0x6d, 0x6c, 0x62, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x6f, 0x53, 0x50, 0x72, 0x6f, 0x74, 0x65, 0x63,
+	0x74, 0x69, 0x6f, 0x6e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42,
+	0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x65,
+	0x72, 0x61, 0x73, 0x73, 0x79, 0x69, 0x2f, 0x73, 0x65, 0x63, 0x63, 0x61, 0x6d, 0x70, 0x2d, 0x78,
+	0x64, 0x70, 0x2f, 0x73, 0x63, 0x6d, 0x6c, 0x62, 0x2f, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -634,40 +946,53 @@ func file_protobuf_scmlb_proto_rawDescGZIP() []byte {
 	return file_protobuf_scmlb_proto_rawDescData
 }
 
-var file_protobuf_scmlb_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_protobuf_scmlb_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_protobuf_scmlb_proto_goTypes = []interface{}{
-	(*HealthRequest)(nil),             // 0: scmlb.v1.HealthRequest
-	(*StatRequest)(nil),               // 1: scmlb.v1.StatRequest
-	(*StatResponse)(nil),              // 2: scmlb.v1.StatResponse
-	(*Interface)(nil),                 // 3: scmlb.v1.Interface
-	(*PacketCounter)(nil),             // 4: scmlb.v1.PacketCounter
-	(*FireWallRuleSetRqeust)(nil),     // 5: scmlb.v1.FireWallRuleSetRqeust
-	(*FireWallRuleGetRequest)(nil),    // 6: scmlb.v1.FireWallRuleGetRequest
-	(*FireWallRuleGetResponse)(nil),   // 7: scmlb.v1.FireWallRuleGetResponse
-	(*FireWallRuleDeleteRequest)(nil), // 8: scmlb.v1.FireWallRuleDeleteRequest
-	(*FireWallRule)(nil),              // 9: scmlb.v1.FireWallRule
-	(*emptypb.Empty)(nil),             // 10: google.protobuf.Empty
+	(*HealthRequest)(nil),                    // 0: scmlb.v1.HealthRequest
+	(*StatRequest)(nil),                      // 1: scmlb.v1.StatRequest
+	(*StatResponse)(nil),                     // 2: scmlb.v1.StatResponse
+	(*Interface)(nil),                        // 3: scmlb.v1.Interface
+	(*PacketCounter)(nil),                    // 4: scmlb.v1.PacketCounter
+	(*FireWallRuleSetRqeust)(nil),            // 5: scmlb.v1.FireWallRuleSetRqeust
+	(*FireWallRuleGetRequest)(nil),           // 6: scmlb.v1.FireWallRuleGetRequest
+	(*FireWallRuleGetResponse)(nil),          // 7: scmlb.v1.FireWallRuleGetResponse
+	(*FireWallRuleDeleteRequest)(nil),        // 8: scmlb.v1.FireWallRuleDeleteRequest
+	(*FireWallRule)(nil),                     // 9: scmlb.v1.FireWallRule
+	(*DoSProtectionPolicySetRequest)(nil),    // 10: scmlb.v1.DoSProtectionPolicySetRequest
+	(*DoSProtectionPolicyGetRequest)(nil),    // 11: scmlb.v1.DoSProtectionPolicyGetRequest
+	(*DoSProtectionPolicyGetResponse)(nil),   // 12: scmlb.v1.DoSProtectionPolicyGetResponse
+	(*DoSProtectionPolicyDeleteRequest)(nil), // 13: scmlb.v1.DoSProtectionPolicyDeleteRequest
+	(*DoSProtectionPolicy)(nil),              // 14: scmlb.v1.DoSProtectionPolicy
+	(*emptypb.Empty)(nil),                    // 15: google.protobuf.Empty
 }
 var file_protobuf_scmlb_proto_depIdxs = []int32{
 	3,  // 0: scmlb.v1.StatResponse.ifaces:type_name -> scmlb.v1.Interface
 	4,  // 1: scmlb.v1.Interface.counter:type_name -> scmlb.v1.PacketCounter
 	9,  // 2: scmlb.v1.FireWallRuleSetRqeust.rule:type_name -> scmlb.v1.FireWallRule
 	9,  // 3: scmlb.v1.FireWallRuleGetResponse.rules:type_name -> scmlb.v1.FireWallRule
-	0,  // 4: scmlb.v1.ScmLbApi.Health:input_type -> scmlb.v1.HealthRequest
-	1,  // 5: scmlb.v1.ScmLbApi.Stat:input_type -> scmlb.v1.StatRequest
-	5,  // 6: scmlb.v1.ScmLbApi.FireWallRuleSet:input_type -> scmlb.v1.FireWallRuleSetRqeust
-	6,  // 7: scmlb.v1.ScmLbApi.FireWallRuleGet:input_type -> scmlb.v1.FireWallRuleGetRequest
-	8,  // 8: scmlb.v1.ScmLbApi.FireWallRuleDelete:input_type -> scmlb.v1.FireWallRuleDeleteRequest
-	10, // 9: scmlb.v1.ScmLbApi.Health:output_type -> google.protobuf.Empty
-	2,  // 10: scmlb.v1.ScmLbApi.Stat:output_type -> scmlb.v1.StatResponse
-	10, // 11: scmlb.v1.ScmLbApi.FireWallRuleSet:output_type -> google.protobuf.Empty
-	7,  // 12: scmlb.v1.ScmLbApi.FireWallRuleGet:output_type -> scmlb.v1.FireWallRuleGetResponse
-	10, // 13: scmlb.v1.ScmLbApi.FireWallRuleDelete:output_type -> google.protobuf.Empty
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	14, // 4: scmlb.v1.DoSProtectionPolicySetRequest.policy:type_name -> scmlb.v1.DoSProtectionPolicy
+	14, // 5: scmlb.v1.DoSProtectionPolicyGetResponse.policies:type_name -> scmlb.v1.DoSProtectionPolicy
+	0,  // 6: scmlb.v1.ScmLbApi.Health:input_type -> scmlb.v1.HealthRequest
+	1,  // 7: scmlb.v1.ScmLbApi.Stat:input_type -> scmlb.v1.StatRequest
+	5,  // 8: scmlb.v1.ScmLbApi.FireWallRuleSet:input_type -> scmlb.v1.FireWallRuleSetRqeust
+	6,  // 9: scmlb.v1.ScmLbApi.FireWallRuleGet:input_type -> scmlb.v1.FireWallRuleGetRequest
+	8,  // 10: scmlb.v1.ScmLbApi.FireWallRuleDelete:input_type -> scmlb.v1.FireWallRuleDeleteRequest
+	10, // 11: scmlb.v1.ScmLbApi.DoSProtectionPolicySet:input_type -> scmlb.v1.DoSProtectionPolicySetRequest
+	11, // 12: scmlb.v1.ScmLbApi.DoSProtectionPolicyGet:input_type -> scmlb.v1.DoSProtectionPolicyGetRequest
+	13, // 13: scmlb.v1.ScmLbApi.DoSProtectionPolicyDelete:input_type -> scmlb.v1.DoSProtectionPolicyDeleteRequest
+	15, // 14: scmlb.v1.ScmLbApi.Health:output_type -> google.protobuf.Empty
+	2,  // 15: scmlb.v1.ScmLbApi.Stat:output_type -> scmlb.v1.StatResponse
+	15, // 16: scmlb.v1.ScmLbApi.FireWallRuleSet:output_type -> google.protobuf.Empty
+	7,  // 17: scmlb.v1.ScmLbApi.FireWallRuleGet:output_type -> scmlb.v1.FireWallRuleGetResponse
+	15, // 18: scmlb.v1.ScmLbApi.FireWallRuleDelete:output_type -> google.protobuf.Empty
+	15, // 19: scmlb.v1.ScmLbApi.DoSProtectionPolicySet:output_type -> google.protobuf.Empty
+	12, // 20: scmlb.v1.ScmLbApi.DoSProtectionPolicyGet:output_type -> scmlb.v1.DoSProtectionPolicyGetResponse
+	15, // 21: scmlb.v1.ScmLbApi.DoSProtectionPolicyDelete:output_type -> google.protobuf.Empty
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_protobuf_scmlb_proto_init() }
@@ -796,6 +1121,66 @@ func file_protobuf_scmlb_proto_init() {
 				return nil
 			}
 		}
+		file_protobuf_scmlb_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DoSProtectionPolicySetRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protobuf_scmlb_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DoSProtectionPolicyGetRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protobuf_scmlb_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DoSProtectionPolicyGetResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protobuf_scmlb_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DoSProtectionPolicyDeleteRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protobuf_scmlb_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DoSProtectionPolicy); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -803,7 +1188,7 @@ func file_protobuf_scmlb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_protobuf_scmlb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -61,3 +61,10 @@ struct {
 	__uint(max_entries, 2056);
 } drop_counter SEC(".maps");
 
+// DoS protector のためのパケット種類別の数をカウントするためのマップです。
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(key_size, sizeof(struct dos_protection_identifier));
+	__uint(value_size, sizeof(u64));
+	__uint(max_entries, 2056);
+} dosp_counter SEC(".maps");

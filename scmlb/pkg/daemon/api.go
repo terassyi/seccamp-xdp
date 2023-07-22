@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/netip"
 
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/dosprotector"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/firewall"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/protocols"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/rpc"
@@ -80,7 +81,7 @@ func (d *Daemon) FireWallRuleSet(ctx context.Context, in *rpc.FireWallRuleSetRqe
 	}
 
 	d.logger.InfoCtx(ctx, "add fire wall rule", slog.Any("rule", rule))
-	if err := d.fw.Set(rule); err != nil {
+	if _, err := d.fw.Set(rule); err != nil {
 		return nil, err
 	}
 
@@ -120,5 +121,63 @@ func (d *Daemon) FireWallRuleDelete(ctx context.Context, in *rpc.FireWallRuleDel
 		return nil, err
 	}
 
+	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) DoSProtectionPolicySet(ctx context.Context, in *rpc.DoSProtectionPolicySetRequest) (*emptypb.Empty, error) {
+	protocol, err := protocols.NewTransportProtocol(uint32(in.Policy.Protocol))
+	if err != nil {
+		return nil, err
+	}
+	typ, err := protocols.TcpFlagFromString(in.Policy.Type)
+	if err != nil {
+		return nil, err
+	}
+	policy := dosprotector.Policy{
+		Protocol: protocol,
+		Type:     typ,
+		Limit:    uint64(in.Policy.Limit),
+	}
+
+	d.logger.InfoCtx(ctx, "set new policy", slog.Any("policy", policy))
+	if _, err := d.dosProtector.Set(ctx, &policy); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) DoSProtectionPolicyGet(ctx context.Context, in *rpc.DoSProtectionPolicyGetRequest) (*rpc.DoSProtectionPolicyGetResponse, error) {
+
+	protoPolicies := make([]*rpc.DoSProtectionPolicy, 0)
+
+	d.logger.InfoCtx(ctx, "get DoS protection policies")
+	policies, err := d.dosProtector.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	d.logger.DebugCtx(ctx, "policies", slog.Any("policies", policies))
+
+	for _, p := range policies {
+		protoPolicies = append(protoPolicies, &rpc.DoSProtectionPolicy{
+			Id:       int32(p.Id),
+			Protocol: int32(p.Protocol),
+			Type:     p.Type.String(),
+			Limit:    int64(p.Limit),
+			Status:   int32(p.Status),
+		})
+	}
+
+	return &rpc.DoSProtectionPolicyGetResponse{
+		Policies: protoPolicies,
+	}, nil
+}
+
+func (d *Daemon) DoSProtectionPolicyDelete(ctx context.Context, in *rpc.DoSProtectionPolicyDeleteRequest) (*emptypb.Empty, error) {
+
+	d.logger.InfoCtx(ctx, "delete a DoS protection policy", slog.Int("id", int(in.Id)))
+	if err := d.dosProtector.Delete(uint32(in.Id)); err != nil {
+		return nil, err
+	}
 	return &emptypb.Empty{}, nil
 }

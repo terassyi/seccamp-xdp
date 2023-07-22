@@ -17,9 +17,10 @@ import (
 
 // bpf/xdp.c で定義された関数とマップのシンボルを定数として定義しています(使い回しがきくように)
 const (
-	PROG_NAME_ENTRYPOINY = "entrypoint"
-	PROG_NAME_COUNT      = "count"
-	PROG_NAME_FIREWALL   = "firewall"
+	PROG_NAME_ENTRYPOINY    = "entrypoint"
+	PROG_NAME_COUNT         = "count"
+	PROG_NAME_FIREWALL      = "firewall"
+	PROG_NAME_DOS_PROTECTOR = "dos_protector"
 
 	MAP_NAME_CALLS_MAP        = "calls_map"
 	MAP_NAME_COUNTER          = "counter"
@@ -27,12 +28,14 @@ const (
 	MAP_NAME_DROP_COUNTER     = "drop_counter"
 	MAP_NAME_ADV_RULE_MATCHER = "adv_rulematcher"
 	MAP_NAME_ADV_RULES        = "adv_rules"
+	MAP_NAME_DOSP_COUNTER     = "dosp_counter"
 )
 
 // tail call のための calls_map にデータを反映させるための map を定義しています。
 var tailCalledPrograms = map[uint32]string{
 	0: PROG_NAME_COUNT,
 	1: PROG_NAME_FIREWALL,
+	2: PROG_NAME_DOS_PROTECTOR,
 }
 
 // bpf/xdp.c から生成した関数やマップの情報を保持する構造体
@@ -69,6 +72,7 @@ func Load(logger slog.Logger) (*Loader, error) {
 	programs[PROG_NAME_ENTRYPOINY] = objects.Entrypoint
 	programs[PROG_NAME_COUNT] = objects.Count
 	programs[PROG_NAME_FIREWALL] = objects.Firewall
+	programs[PROG_NAME_DOS_PROTECTOR] = objects.DosProtector
 
 	maps[MAP_NAME_CALLS_MAP] = objects.CallsMap
 	maps[MAP_NAME_COUNTER] = objects.Counter
@@ -76,6 +80,7 @@ func Load(logger slog.Logger) (*Loader, error) {
 	maps[MAP_NAME_DROP_COUNTER] = objects.DropCounter
 	maps[MAP_NAME_ADV_RULE_MATCHER] = objects.AdvRulematcher
 	maps[MAP_NAME_ADV_RULES] = objects.AdvRules
+	maps[MAP_NAME_DOSP_COUNTER] = objects.DospCounter
 
 	return &Loader{
 		logger:   logger,

@@ -59,7 +59,7 @@ func NewManager(logger *slog.Logger, p *ebpf.Program, ruleMap, dropCounter, advR
 	}
 }
 
-func (f *FwManager) Set(rule *FWRule) error {
+func (f *FwManager) Set(rule *FWRule) (uint32, error) {
 
 	rule.Id = f.nextId
 	f.nextId += 1
@@ -72,7 +72,7 @@ func (f *FwManager) Set(rule *FWRule) error {
 	nw, r := rule.splitKeyValue()
 	if err := f.ruleMap.Update(nw, r, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
-		return err
+		return 0, err
 	}
 
 	// port や protocol を考慮した fire wall のためのコード
@@ -94,17 +94,17 @@ func (f *FwManager) Set(rule *FWRule) error {
 	f.logger.Debug("update rule matcher", slog.String("network", rule.Prefix.String()), slog.Any("ids", ids))
 	if err := f.advRuleMatcher.Update(nw, &ids, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update rule matcher", err, slog.Any("rule", rule), slog.Any("ids", ids))
-		return err
+		return 0, err
 	}
 
 	if err := f.advRuleMap.Update(rule.Id, r, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update advanced rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
-		return err
+		return 0, err
 	}
 
 	f.rules[rule.Id] = *rule
 
-	return nil
+	return rule.Id, nil
 }
 
 func (f *FwManager) Get() ([]FWRule, error) {
