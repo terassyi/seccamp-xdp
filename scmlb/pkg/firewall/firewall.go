@@ -12,12 +12,14 @@ import (
 )
 
 type FWRule struct {
-	Id       uint32
-	Prefix   netip.Prefix
-	FromPort uint32
-	ToPort   uint32
-	Protocol protocols.TransportProtocol
-	Count    uint64
+	Id          uint32
+	Prefix      netip.Prefix
+	FromSrcPort uint32
+	ToSrcPort   uint32
+	FromDstPort uint32
+	ToDstPort   uint32
+	Protocol    protocols.TransportProtocol
+	Count       uint64
 }
 
 // この構造体は bpf/include/scmlb.h の同名の構造体に対応しています。
@@ -28,10 +30,12 @@ type network struct {
 
 // この構造体は bpf/include/scmlb.h の同名の構造体に対応しています。
 type fwRule struct {
-	id       uint32
-	fromPort uint16
-	toPort   uint16
-	protocol uint32
+	id          uint32
+	fromSrcPort uint16
+	toSrcPort   uint16
+	fromDstPort uint16
+	toDstPort   uint16
+	protocol    uint32
 }
 
 type FwManager struct {
@@ -196,10 +200,10 @@ func (r *FWRule) splitKeyValue() (network, fwRule) {
 	}
 
 	rule := fwRule{
-		id:       r.Id,
-		fromPort: uint16(r.FromPort),
-		toPort:   uint16(r.ToPort),
-		protocol: uint32(r.Protocol),
+		id:          r.Id,
+		fromSrcPort: uint16(r.FromSrcPort),
+		toSrcPort:   uint16(r.ToSrcPort),
+		protocol:    uint32(r.Protocol),
 	}
 
 	return nw, rule

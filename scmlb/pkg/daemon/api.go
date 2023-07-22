@@ -74,10 +74,12 @@ func (d *Daemon) FireWallRuleSet(ctx context.Context, in *rpc.FireWallRuleSetRqe
 	}
 
 	rule := &firewall.FWRule{
-		Prefix:   prefix,
-		FromPort: uint32(in.Rule.FromPort),
-		ToPort:   uint32(in.Rule.ToPort),
-		Protocol: proto,
+		Prefix:      prefix,
+		FromSrcPort: uint32(in.Rule.FromSrcPort),
+		ToSrcPort:   uint32(in.Rule.ToSrcPort),
+		FromDstPort: uint32(in.Rule.FromDstPort),
+		ToDstPort:   uint32(in.Rule.ToDstPort),
+		Protocol:    proto,
 	}
 
 	d.logger.InfoCtx(ctx, "add fire wall rule", slog.Any("rule", rule))
@@ -100,12 +102,14 @@ func (d *Daemon) FireWallRuleGet(ctx context.Context, in *rpc.FireWallRuleGetReq
 	}
 	for _, r := range rr {
 		rules = append(rules, &rpc.FireWallRule{
-			Id:       int32(r.Id),
-			Prefix:   r.Prefix.String(),
-			FromPort: int32(r.FromPort),
-			ToPort:   int32(r.ToPort),
-			Protocol: int32(r.Protocol),
-			Count:    int64(r.Count),
+			Id:          int32(r.Id),
+			Prefix:      r.Prefix.String(),
+			FromSrcPort: int32(r.FromSrcPort),
+			ToSrcPort:   int32(r.ToSrcPort),
+			FromDstPort: int32(r.FromDstPort),
+			ToDstPort:   int32(r.ToDstPort),
+			Protocol:    int32(r.Protocol),
+			Count:       int64(r.Count),
 		})
 	}
 

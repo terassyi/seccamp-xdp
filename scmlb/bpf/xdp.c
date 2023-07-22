@@ -21,7 +21,7 @@
 #define TCP_FLAG_CWR 128
 
 // ルールに対して与えたプロトコル番号とポートが対象のとき 1 を返して、それ以外の場合は 0 を返す関数です
-int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port) {
+int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port, u16 dst_port) {
 
 	u8 rule_prorocol = rule->protocol;
 	// パケットのプロトコルがルールの対象プロトコルとマッチしていなければ 0
@@ -35,12 +35,17 @@ int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port) {
 	}
 
 	// rule の from/to_port がどちらも 0 のときはすべてのポートが対象なので 1 を返します。
-	if ((rule->from_port == 0) && (rule->to_port == 0)) {
+	if ((rule->from_src_port == 0) && (rule->to_src_port == 0)) {
 		return 1;
 	}
 
-	// src_port が from_port =< src_port <= to_port の関係にあるとき 1 を返します。
-	if ((src_port >= rule->from_port) && (rule->to_port >= src_port)) {
+	// src_port が from_src_port =< src_port <= to_src_port の関係にあるとき 1 を返します。
+	if ((src_port >= rule->from_src_port) && (rule->to_src_port >= src_port)) {
+		return 1;
+	}
+
+	// dst_port が from_dst_port <= dst_port <= to_dst_port の関係にあるとき 1 を返します。
+	if ((dst_port >= rule->from_dst_port) && (rule->to_dst_port >= dst_port)) {
 		return 1;
 	}
 
@@ -67,7 +72,6 @@ int firewall(struct xdp_md *ctx) {
 	bpf_printk("hello from scmlb firewall!");
 	
 	// ここに firewall のロジックを記述します。
-
 
 	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_DOS_PROTECTOR);
 	return XDP_PASS;

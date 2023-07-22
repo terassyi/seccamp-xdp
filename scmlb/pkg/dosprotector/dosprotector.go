@@ -213,10 +213,12 @@ func (d *DoSProtector) Run(ctx context.Context) error {
 							}
 							// fire wall のルールを作成します。
 							rule := firewall.FWRule{
-								Prefix:   prefix,
-								ToPort:   0,
-								FromPort: 0,
-								Protocol: protocol,
+								Prefix:      prefix,
+								ToSrcPort:   0,
+								FromSrcPort: 0,
+								FromDstPort: 0,
+								ToDstPort:   0,
+								Protocol:    protocol,
 							}
 							// fire wall のルールを適用します。
 							id, err := d.fwManager.Set(&rule)

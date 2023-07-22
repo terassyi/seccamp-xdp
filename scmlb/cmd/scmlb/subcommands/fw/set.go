@@ -24,7 +24,8 @@ var setCmd = cobra.Command{
 func init() {
 	setCmd.Flags().StringP("network", "n", "0.0.0.0/0", "network range to deny by fire wall")
 	setCmd.Flags().StringP("protocol", "t", "any", "transport protocols to deny(expected value is any/icmp/tcp/udp)")
-	setCmd.Flags().StringP("port", "p", "0", "port range to deny(example: 22, 5000-6000)")
+	setCmd.Flags().StringP("src-port", "s", "0", "port range to deny(example: 22, 5000-6000)")
+	setCmd.Flags().StringP("dst-port", "d", "0", "port range to deny(example: 22, 5000-6000)")
 
 	setCmd.MarkFlagRequired("network")
 }
@@ -44,7 +45,11 @@ func executeSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	portRangeStr, err := cmd.Flags().GetString("port")
+	srcPortRangeStr, err := cmd.Flags().GetString("src-port")
+	if err != nil {
+		return err
+	}
+	dstPortRangeStr, err := cmd.Flags().GetString("dst-port")
 	if err != nil {
 		return err
 	}
@@ -58,7 +63,11 @@ func executeSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	from, to, err := splitPortRange(portRangeStr)
+	srcFrom, srcTo, err := splitPortRange(srcPortRangeStr)
+	if err != nil {
+		return err
+	}
+	dstFrom, dstTo, err := splitPortRange(dstPortRangeStr)
 	if err != nil {
 		return err
 	}
@@ -74,10 +83,12 @@ func executeSet(cmd *cobra.Command, args []string) error {
 
 	_, err = client.FireWallRuleSet(cmd.Context(), &rpc.FireWallRuleSetRqeust{
 		Rule: &rpc.FireWallRule{
-			Prefix:   network.String(),
-			Protocol: int32(protocol),
-			FromPort: int32(from),
-			ToPort:   int32(to),
+			Prefix:      network.String(),
+			Protocol:    int32(protocol),
+			FromSrcPort: int32(srcFrom),
+			ToSrcPort:   int32(srcTo),
+			FromDstPort: int32(dstFrom),
+			ToDstPort:   int32(dstTo),
 		},
 	})
 	if err != nil {
