@@ -432,9 +432,19 @@ int count(struct xdp_md *ctx) {
 		return XDP_ABORTED;
 	}
 
-	// ここにパケットカウンタのロジックを記述する
+	// L4 のプロトコルに合わせてカウントアップする
+	u32 l4_protocol = iph->protocol;
+	
+	bpf_printk("got packet: protocol is %d", l4_protocol);
 
-	// ここまで
+	u32 *c = bpf_map_lookup_elem(&counter, &l4_protocol);
+	if (c) {
+		(*c)++;
+		bpf_printk("increment counter %d", c);
+	} else {
+		u32 initial_value = 1;
+		bpf_map_update_elem(&counter, &l4_protocol, &initial_value, 0);
+	}
 	
 	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_FIREWALL);
 
@@ -489,16 +499,43 @@ int firewall(struct xdp_md *ctx) {
 			u32 id = (u32)ids[i];
 
 
-			// ここにファイアウォールのロジックを記述します。
-
-
 			// map から id をキーとして rule をとりだします
-			
+			void *rule_res = bpf_map_lookup_elem(&adv_rules, &id);
+			if (rule_res == NULL) {
+				continue;
+			}
+			struct fw_rule *rule = rule_res;
 
 			// パケットのプロトコルを判別して port などの必要な値をとりだしてルールにマッチするか確かめます
+			int res = 0;
+			if (iph->protocol == IP_PROTO_ICMP) {
+				res = fw_match(rule, iph->protocol, 0, 0);
+			} else if (iph->protocol == IP_PROTO_TCP) {
+				struct tcphdr *tcph = data;
+				if (data + sizeof(*tcph) > data_end) {
+					return XDP_ABORTED;
+				}
 
-
+				res = fw_match(rule, iph->protocol, tcph->source, tcph->dest);
+			} else if (iph->protocol == IP_PROTO_UDP) {
+				struct udphdr *udph = data;
+				if (data + sizeof(*udph) > data_end) {
+					return XDP_ABORTED;
+				}
+				res = fw_match(rule, iph->protocol, udph->source, udph->dest);
+			}
 			// もしルールにマッチしていたら drop_counter の値をカウントアップしてパケットをドロップします
+			if (res == 1) {
+				bpf_printk("matched the rule: %d", id);
+				u64 *c = bpf_map_lookup_elem(&drop_counter, &rule->id);
+				if (c) {
+					(*c)++;
+				} else {
+					u64 init_value = 1;
+					bpf_map_update_elem(&drop_counter, &rule->id, &init_value, 0);
+				}
+				return XDP_DROP;
+			}
 		}
 	}
 
@@ -517,6 +554,84 @@ int dos_protector(struct xdp_md *ctx) {
 	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
+
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	data += sizeof(*iph);
+
+	// L4 プロトコルを判別する
+	u8 l4_protocol = iph->protocol;
+	u32 src_addr = iph->saddr;
+
+	struct dos_protection_identifier ident;
+	// 構造体のメンバをすべて 0 で初期化しています。
+	// 初期化をしっかりやらないと verifier に怒られます。
+	__builtin_memset(&ident, 0, sizeof(ident));
+	ident.address = src_addr;
+	ident.protocol = l4_protocol;
+
+	if (l4_protocol == IP_PROTO_ICMP) {
+		ident.packet_type = 0;
+
+	} else if (l4_protocol == IP_PROTO_TCP) {
+		struct tcphdr *tcph = data;
+		if (data + sizeof(*tcph) > data_end) {
+			return XDP_ABORTED;
+		}
+		
+		// tcp パケットの場合はフラグをチェックする
+		if (tcph->fin) {
+			ident.packet_type = TCP_FLAG_FIN;
+		} else if (tcph->syn) {
+			ident.packet_type = TCP_FLAG_SYN;
+		} else if (tcph->rst) {
+			ident.packet_type = TCP_FLAG_RST;
+		} else if (tcph->psh) {
+			ident.packet_type = TCP_FLAG_PSH;
+		} else if (tcph->urg) {
+			ident.packet_type = TCP_FLAG_URG;
+		} else if (tcph->ece) {
+			ident.packet_type = TCP_FLAG_ECE;
+		} else if (tcph->cwr) {
+			ident.packet_type = TCP_FLAG_CWR;
+		// ack はほぼすべてのパケットについているので比較を最後にしています
+		} else if (tcph->ack) {
+			ident.packet_type = TCP_FLAG_ACK;
+		}
+	} else if (l4_protocol == IP_PROTO_UDP) {
+		ident.packet_type = 0;
+
+	} else {
+		// icmp, tcp, udp プロトコル以外のパケットは無視する
+		return XDP_ABORTED;
+	}
+
+	u64 *c = bpf_map_lookup_elem(&dosp_counter, &ident);
+	if (c) {
+		(*c)++;
+	} else {
+		u64 init = 1;
+		bpf_map_update_elem(&dosp_counter, &ident, &init, 0);
+	}
 
 	// Ethernet header の構造体にパケットのデータをマッピングする
 	struct ethhdr *ethh = data;
