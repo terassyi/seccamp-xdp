@@ -5,6 +5,7 @@ package scmlb.v1;
 option go_package = "github.com/terassyi/seccamp-xdp/scmlb/rpc";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service ScmLbApi {
 	rpc Health(HealthRequest) returns (google.protobuf.Empty);
@@ -15,6 +16,11 @@ service ScmLbApi {
 	rpc DoSProtectionPolicySet(DoSProtectionPolicySetRequest) returns (google.protobuf.Empty);
 	rpc DoSProtectionPolicyGet(DoSProtectionPolicyGetRequest) returns (DoSProtectionPolicyGetResponse);
 	rpc DoSProtectionPolicyDelete(DoSProtectionPolicyDeleteRequest) returns (google.protobuf.Empty);
+	rpc LoadBalancerSet (LoadBalancerSetRequest) returns (google.protobuf.Empty);
+	rpc LoadBalancerGet(LoadBalancerGetRequest) returns (LoadBalancerGetResponse);
+	rpc LoadBalancerDelete(LoadBalancerDeleteRequest) returns (google.protobuf.Empty);
+	rpc LoadBalancerDrain(LoadBalancerDrainRequest) returns (google.protobuf.Empty);
+	rpc LoadBalancerConntrackGet(LoadBalancerConntrackGetRequest) returns (LoadBalancerConntrackGetResponse);
 }
 
 message HealthRequest {}
@@ -84,4 +90,52 @@ message DoSProtectionPolicy {
 	int64 limit = 5;
 	int32 status = 6;
 	repeated int32 fw_rule_ids = 7;
+}
+
+message LoadBalancerSetRequest {
+	string name = 1;
+	string address = 2;
+	string healthcheck = 3;
+}
+
+message LoadBalancerGetRequest {}
+
+message LoadBalancerGetResponse {
+	repeated LoadBalancerBackend backends = 1;
+}
+
+message LoadBalancerDeleteRequest {
+	int32 id = 1;
+}
+
+message LoadBalancerDrainRequest {
+	int32 id = 1;
+}
+
+message LoadBalancerBackend {
+	int32 id = 1;
+	string name = 2;
+	string dev_name = 3;
+	string ip_addr = 4;
+	string mac_addr = 5;
+	string healthcheck = 6;
+	int32 status = 7;
+}
+
+message LoadBalancerConntrackGetRequest {}
+
+message LoadBalancerConntrackGetResponse {
+	repeated ConntrackEntry entries = 1;
+}
+
+message ConntrackEntry {
+	string src_addr = 1;
+	string dst_addr = 2;
+	int32 src_port = 3;
+	int32 dst_port = 4;
+	int32 protocol = 5;
+	int32 status = 6;
+	google.protobuf.Timestamp timestamp = 7;	
+	int32 backend_id = 8;
+	uint64 counter = 9;
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/api"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/dosprotection"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/fw"
+	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/lb"
 	"github.com/terassyi/seccamp-xdp/scmlb/cmd/scmlb/subcommands/stat"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 )
@@ -36,6 +37,8 @@ func init() {
 	rootCmd.AddCommand(&fw.FwCmd)
 	// $ scmlb dos-protection で呼び出される dos protection サブコマンドを登録しています
 	rootCmd.AddCommand(&dosprotection.DoSProtectionCmd)
+	// $ scmlb lb で呼び出される lb サブコマンドを登録しています。
+	rootCmd.AddCommand(&lb.LbCmd)
 }
 
 func main() {

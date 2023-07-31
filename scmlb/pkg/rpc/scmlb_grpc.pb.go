@@ -28,6 +28,11 @@ const (
 	ScmLbApi_DoSProtectionPolicySet_FullMethodName    = "/scmlb.v1.ScmLbApi/DoSProtectionPolicySet"
 	ScmLbApi_DoSProtectionPolicyGet_FullMethodName    = "/scmlb.v1.ScmLbApi/DoSProtectionPolicyGet"
 	ScmLbApi_DoSProtectionPolicyDelete_FullMethodName = "/scmlb.v1.ScmLbApi/DoSProtectionPolicyDelete"
+	ScmLbApi_LoadBalancerSet_FullMethodName           = "/scmlb.v1.ScmLbApi/LoadBalancerSet"
+	ScmLbApi_LoadBalancerGet_FullMethodName           = "/scmlb.v1.ScmLbApi/LoadBalancerGet"
+	ScmLbApi_LoadBalancerDelete_FullMethodName        = "/scmlb.v1.ScmLbApi/LoadBalancerDelete"
+	ScmLbApi_LoadBalancerDrain_FullMethodName         = "/scmlb.v1.ScmLbApi/LoadBalancerDrain"
+	ScmLbApi_LoadBalancerConntrackGet_FullMethodName  = "/scmlb.v1.ScmLbApi/LoadBalancerConntrackGet"
 )
 
 // ScmLbApiClient is the client API for ScmLbApi service.
@@ -42,6 +47,11 @@ type ScmLbApiClient interface {
 	DoSProtectionPolicySet(ctx context.Context, in *DoSProtectionPolicySetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DoSProtectionPolicyGet(ctx context.Context, in *DoSProtectionPolicyGetRequest, opts ...grpc.CallOption) (*DoSProtectionPolicyGetResponse, error)
 	DoSProtectionPolicyDelete(ctx context.Context, in *DoSProtectionPolicyDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	LoadBalancerSet(ctx context.Context, in *LoadBalancerSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	LoadBalancerGet(ctx context.Context, in *LoadBalancerGetRequest, opts ...grpc.CallOption) (*LoadBalancerGetResponse, error)
+	LoadBalancerDelete(ctx context.Context, in *LoadBalancerDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	LoadBalancerDrain(ctx context.Context, in *LoadBalancerDrainRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	LoadBalancerConntrackGet(ctx context.Context, in *LoadBalancerConntrackGetRequest, opts ...grpc.CallOption) (*LoadBalancerConntrackGetResponse, error)
 }
 
 type scmLbApiClient struct {
@@ -124,6 +134,51 @@ func (c *scmLbApiClient) DoSProtectionPolicyDelete(ctx context.Context, in *DoSP
 	return out, nil
 }
 
+func (c *scmLbApiClient) LoadBalancerSet(ctx context.Context, in *LoadBalancerSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_LoadBalancerSet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) LoadBalancerGet(ctx context.Context, in *LoadBalancerGetRequest, opts ...grpc.CallOption) (*LoadBalancerGetResponse, error) {
+	out := new(LoadBalancerGetResponse)
+	err := c.cc.Invoke(ctx, ScmLbApi_LoadBalancerGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) LoadBalancerDelete(ctx context.Context, in *LoadBalancerDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_LoadBalancerDelete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) LoadBalancerDrain(ctx context.Context, in *LoadBalancerDrainRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ScmLbApi_LoadBalancerDrain_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scmLbApiClient) LoadBalancerConntrackGet(ctx context.Context, in *LoadBalancerConntrackGetRequest, opts ...grpc.CallOption) (*LoadBalancerConntrackGetResponse, error) {
+	out := new(LoadBalancerConntrackGetResponse)
+	err := c.cc.Invoke(ctx, ScmLbApi_LoadBalancerConntrackGet_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScmLbApiServer is the server API for ScmLbApi service.
 // All implementations must embed UnimplementedScmLbApiServer
 // for forward compatibility
@@ -136,6 +191,11 @@ type ScmLbApiServer interface {
 	DoSProtectionPolicySet(context.Context, *DoSProtectionPolicySetRequest) (*emptypb.Empty, error)
 	DoSProtectionPolicyGet(context.Context, *DoSProtectionPolicyGetRequest) (*DoSProtectionPolicyGetResponse, error)
 	DoSProtectionPolicyDelete(context.Context, *DoSProtectionPolicyDeleteRequest) (*emptypb.Empty, error)
+	LoadBalancerSet(context.Context, *LoadBalancerSetRequest) (*emptypb.Empty, error)
+	LoadBalancerGet(context.Context, *LoadBalancerGetRequest) (*LoadBalancerGetResponse, error)
+	LoadBalancerDelete(context.Context, *LoadBalancerDeleteRequest) (*emptypb.Empty, error)
+	LoadBalancerDrain(context.Context, *LoadBalancerDrainRequest) (*emptypb.Empty, error)
+	LoadBalancerConntrackGet(context.Context, *LoadBalancerConntrackGetRequest) (*LoadBalancerConntrackGetResponse, error)
 	mustEmbedUnimplementedScmLbApiServer()
 }
 
@@ -166,6 +226,21 @@ func (UnimplementedScmLbApiServer) DoSProtectionPolicyGet(context.Context, *DoSP
 }
 func (UnimplementedScmLbApiServer) DoSProtectionPolicyDelete(context.Context, *DoSProtectionPolicyDeleteRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoSProtectionPolicyDelete not implemented")
+}
+func (UnimplementedScmLbApiServer) LoadBalancerSet(context.Context, *LoadBalancerSetRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadBalancerSet not implemented")
+}
+func (UnimplementedScmLbApiServer) LoadBalancerGet(context.Context, *LoadBalancerGetRequest) (*LoadBalancerGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadBalancerGet not implemented")
+}
+func (UnimplementedScmLbApiServer) LoadBalancerDelete(context.Context, *LoadBalancerDeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadBalancerDelete not implemented")
+}
+func (UnimplementedScmLbApiServer) LoadBalancerDrain(context.Context, *LoadBalancerDrainRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadBalancerDrain not implemented")
+}
+func (UnimplementedScmLbApiServer) LoadBalancerConntrackGet(context.Context, *LoadBalancerConntrackGetRequest) (*LoadBalancerConntrackGetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadBalancerConntrackGet not implemented")
 }
 func (UnimplementedScmLbApiServer) mustEmbedUnimplementedScmLbApiServer() {}
 
@@ -324,6 +399,96 @@ func _ScmLbApi_DoSProtectionPolicyDelete_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScmLbApi_LoadBalancerSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancerSetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).LoadBalancerSet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_LoadBalancerSet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).LoadBalancerSet(ctx, req.(*LoadBalancerSetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_LoadBalancerGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancerGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).LoadBalancerGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_LoadBalancerGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).LoadBalancerGet(ctx, req.(*LoadBalancerGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_LoadBalancerDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancerDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).LoadBalancerDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_LoadBalancerDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).LoadBalancerDelete(ctx, req.(*LoadBalancerDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_LoadBalancerDrain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancerDrainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).LoadBalancerDrain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_LoadBalancerDrain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).LoadBalancerDrain(ctx, req.(*LoadBalancerDrainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScmLbApi_LoadBalancerConntrackGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadBalancerConntrackGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScmLbApiServer).LoadBalancerConntrackGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScmLbApi_LoadBalancerConntrackGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScmLbApiServer).LoadBalancerConntrackGet(ctx, req.(*LoadBalancerConntrackGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScmLbApi_ServiceDesc is the grpc.ServiceDesc for ScmLbApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -362,6 +527,26 @@ var ScmLbApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DoSProtectionPolicyDelete",
 			Handler:    _ScmLbApi_DoSProtectionPolicyDelete_Handler,
+		},
+		{
+			MethodName: "LoadBalancerSet",
+			Handler:    _ScmLbApi_LoadBalancerSet_Handler,
+		},
+		{
+			MethodName: "LoadBalancerGet",
+			Handler:    _ScmLbApi_LoadBalancerGet_Handler,
+		},
+		{
+			MethodName: "LoadBalancerDelete",
+			Handler:    _ScmLbApi_LoadBalancerDelete_Handler,
+		},
+		{
+			MethodName: "LoadBalancerDrain",
+			Handler:    _ScmLbApi_LoadBalancerDrain_Handler,
+		},
+		{
+			MethodName: "LoadBalancerConntrackGet",
+			Handler:    _ScmLbApi_LoadBalancerConntrackGet_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

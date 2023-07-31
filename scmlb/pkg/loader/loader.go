@@ -21,6 +21,8 @@ const (
 	PROG_NAME_COUNT         = "count"
 	PROG_NAME_FIREWALL      = "firewall"
 	PROG_NAME_DOS_PROTECTOR = "dos_protector"
+	PROG_NAME_LB_INGRESS    = "lb_ingress"
+	PROG_NAME_LB_EGRESS     = "lb_egress"
 
 	MAP_NAME_CALLS_MAP        = "calls_map"
 	MAP_NAME_COUNTER          = "counter"
@@ -29,6 +31,14 @@ const (
 	MAP_NAME_ADV_RULE_MATCHER = "adv_rulematcher"
 	MAP_NAME_ADV_RULES        = "adv_rules"
 	MAP_NAME_DOSP_COUNTER     = "dosp_counter"
+	MAP_NAME_REDIRECT_DEV_MAP = "redirect_dev_map"
+	MAP_NAME_BACKEND_IFINDEX  = "backend_ifindex"
+	MAP_NAME_BACKEND_INFO     = "backend_info"
+	MAP_NAME_UPSTREAM_INFO    = "upstream_info"
+	MAP_NAME_CONNTRACK        = "conntrack"
+	MAP_NAME_RR_TABLE         = "rr_table"
+
+	PinBasePath = "/sys/fs/bpf/scmlb"
 )
 
 // tail call のための calls_map にデータを反映させるための map を定義しています。
@@ -36,6 +46,8 @@ var tailCalledPrograms = map[uint32]string{
 	0: PROG_NAME_COUNT,
 	1: PROG_NAME_FIREWALL,
 	2: PROG_NAME_DOS_PROTECTOR,
+	3: PROG_NAME_LB_INGRESS,
+	4: PROG_NAME_LB_EGRESS,
 }
 
 // bpf/xdp.c から生成した関数やマップの情報を保持する構造体
@@ -49,14 +61,21 @@ type Loader struct {
 // この関数は bpf/xdp.c で定義した eBPF プログラムをカーネルにロードします
 func Load(logger slog.Logger) (*Loader, error) {
 
+	// if err := os.Mkdir(PinBasePath, os.ModePerm); err != nil {
+	// return nil, err
+	// }
+
 	logger.Info("load XDP programs")
 	objects := XdpProgObjects{}
 	// LoadXdpProgObjects() は bpf2go で自動生成された関数で、これを実行することで eBPF プログラムをカーネルにロードすることができます
 	if err := LoadXdpProgObjects(&objects, &ebpf.CollectionOptions{
 		Programs: ebpf.ProgramOptions{
 			LogLevel: ebpf.LogLevelInstruction,
-			LogSize:  ebpf.DefaultVerifierLogSize * 16,
+			LogSize:  ebpf.DefaultVerifierLogSize * 256,
 		},
+		// Maps: ebpf.MapOptions{
+		// PinPath: PinBasePath,
+		// },
 	}); err != nil {
 		var ve *ebpf.VerifierError
 		if errors.As(err, &ve) {
@@ -73,6 +92,8 @@ func Load(logger slog.Logger) (*Loader, error) {
 	programs[PROG_NAME_COUNT] = objects.Count
 	programs[PROG_NAME_FIREWALL] = objects.Firewall
 	programs[PROG_NAME_DOS_PROTECTOR] = objects.DosProtector
+	programs[PROG_NAME_LB_INGRESS] = objects.LbIngress
+	programs[PROG_NAME_LB_EGRESS] = objects.LbEgress
 
 	maps[MAP_NAME_CALLS_MAP] = objects.CallsMap
 	maps[MAP_NAME_COUNTER] = objects.Counter
@@ -81,6 +102,12 @@ func Load(logger slog.Logger) (*Loader, error) {
 	maps[MAP_NAME_ADV_RULE_MATCHER] = objects.AdvRulematcher
 	maps[MAP_NAME_ADV_RULES] = objects.AdvRules
 	maps[MAP_NAME_DOSP_COUNTER] = objects.DospCounter
+	maps[MAP_NAME_REDIRECT_DEV_MAP] = objects.RedirectDevMap
+	maps[MAP_NAME_BACKEND_INFO] = objects.BackendInfo
+	maps[MAP_NAME_BACKEND_IFINDEX] = objects.BackendIfindex
+	maps[MAP_NAME_UPSTREAM_INFO] = objects.UpstreamInfo
+	maps[MAP_NAME_CONNTRACK] = objects.Conntrack
+	maps[MAP_NAME_RR_TABLE] = objects.RrTable
 
 	return &Loader{
 		logger:   logger,
@@ -92,9 +119,9 @@ func Load(logger slog.Logger) (*Loader, error) {
 
 // この関数はカーネルにロードした XDP プログラムを NIC にアタッチしてパケット処理を開始させる関数です。
 // XDP プログラムはロードする丈ではなくターゲットとなる NIC(インターフェース) にアタッチする必要があります
-func (l *Loader) Attach(upstream string) error {
+func (l *Loader) Attach(device string) error {
 	// アタッチしたい NIC の名前からその NIC に関する情報を取得します
-	iface, err := netlink.LinkByName(upstream)
+	iface, err := netlink.LinkByName(device)
 	if err != nil {
 		return err
 	}
@@ -110,8 +137,11 @@ func (l *Loader) Attach(upstream string) error {
 		// Native XDP で動かしたい場合は XDPDriverMode を指定します。
 		Flags: link.XDPGenericMode,
 	})
+	if err != nil {
+		return err
+	}
 
-	l.links[upstream] = ll
+	l.links[device] = ll
 
 	return nil
 }

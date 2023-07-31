@@ -60,3 +60,62 @@ generate-xdp:
 vmlinux: $(VMLINUX)
 $(VMLINUX):
 	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $(VMLINUX)
+
+GC ?= --gc
+.PHONY: devenv
+devenv: 
+	$(MAKE) -C ../ clean-topology
+	$(MAKE) clean || true
+	$(MAKE) build
+	$(MAKE) -C ../ TOPO=tree topology
+	$(SUDO) ip netns exec host2 bin/scmlbd start --upstream h2-h0 --vip 203.0.113.11 $(GC) --level -4
+
+.PHONY: run-test-app
+run-test-app:
+	$(MAKE) -C ../ build-test-app
+	mkdir -p ./run
+	$(SUDO) ./run-test-app.sh
+
+.PHONY: stop-test-app
+stop-test-app:
+	$(SUDO) kill -9 `cat ./run/app1.pid`
+	$(SUDO) kill -9 `cat ./run/app2.pid`
+	$(SUDO) kill -9 `cat ./run/app3.pid`
+	rm -rf ./run
+
+.PHONY: connectivity-test
+connectivity-test:
+	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node5 -a 10.0.5.2 -c http://10.0.5.2:8080/health
+	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node4 -a 10.0.4.2 -c http://10.0.4.2:8080/health
+
+	sleep 3
+
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+
+.PHONY: drain-test
+drain-test:
+	$(SUDO) ip netns exec host2 bin/scmlb lb get
+	$(SUDO) ip netns exec host2 bin/scmlb lb drain --id 1
+
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+
+	$(SUDO) ip netns exec host2 bin/scmlb lb get
+	$(SUDO) ip netns exec host2 bin/scmlb lb delete --id 1
+	$(SUDO) ip netns exec host2 bin/scmlb lb get
+
+.PHONY: add-backend-test
+add-backend-test:
+	$(SUDO) ip netns exec host2 bin/scmlb lb get
+	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node7 -a 10.0.6.2 -c http://10.0.6.2:8080/health
+	$(SUDO) ip netns exec host2 bin/scmlb lb get
+
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
