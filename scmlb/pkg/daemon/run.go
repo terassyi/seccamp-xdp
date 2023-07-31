@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/constants"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/counter"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/dosprotector"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/firewall"
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/loadbalancer"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/loader"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/logger"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/rpc"
@@ -31,6 +34,7 @@ type Daemon struct {
 	counter      *counter.Counter
 	fw           *firewall.FwManager
 	dosProtector *dosprotector.DoSProtector
+	lb           *loadbalancer.LbBackendManager
 }
 
 func New(apiAddr string, apiPort int32, upstreamInterface string) (*Daemon, error) {
@@ -49,7 +53,7 @@ func New(apiAddr string, apiPort int32, upstreamInterface string) (*Daemon, erro
 	return daemon, nil
 }
 
-func (d *Daemon) Run() error {
+func (d *Daemon) Run(vip netip.Addr, gc bool, gcTime time.Duration) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -108,6 +112,11 @@ func (d *Daemon) Run() error {
 		return err
 	}
 
+	d.logger.InfoCtx(ctx, "setup Load balancer")
+	if err := d.setupLoadBalancer(ctx, loader, vip, gc, gcTime); err != nil {
+		return err
+	}
+
 	// ロードしたプログラムを NIC にアタッチします
 	if err := loader.Attach(d.upstream); err != nil {
 		return err
@@ -116,10 +125,17 @@ func (d *Daemon) Run() error {
 	// defer に登録された関数は登録元の関数(この場合は Run() )から抜けるときに実行されます。
 	// ここではロードした XDP プログラムと eBPF マップを削除して、アタッチしている NIC からもプログラムを外しています。
 	defer func() {
+
 		d.logger.InfoCtx(ctx, "stopping scmlbd")
+		// ロードバランサーのバックエンドにアタッチしている XDP プログラムもでタッチします。
+		if err := d.lb.DeleteAll(); err != nil {
+			d.logger.ErrorCtx(ctx, "failed to finalize XDP from backends", err)
+		}
+
 		if err := loader.Finalize(); err != nil {
 			d.logger.ErrorCtx(ctx, "failed to finalize XDP", err)
 		}
+		d.logger.InfoCtx(ctx, "finished stopping lb")
 	}()
 
 	// Ctrl-C を待ち受けています
@@ -195,5 +211,53 @@ func (d *Daemon) setupDoSProtector(ctx context.Context, l *loader.Loader, fwMana
 		}
 	}()
 
+	return nil
+}
+
+func (d *Daemon) setupLoadBalancer(ctx context.Context, l *loader.Loader, vip netip.Addr, gc bool, gcTime time.Duration) error {
+	entry, ok := l.Programs[loader.PROG_NAME_ENTRYPOINY]
+	if !ok {
+		return fmt.Errorf("failed to find entrypoint program")
+	}
+
+	redirectMap, ok := l.Maps[loader.MAP_NAME_REDIRECT_DEV_MAP]
+	if !ok {
+		return fmt.Errorf("failed to find backend device map")
+	}
+
+	backendInfoMap, ok := l.Maps[loader.MAP_NAME_BACKEND_INFO]
+	if !ok {
+		return fmt.Errorf("failed to find backend info map")
+	}
+	backendIfindexMap, ok := l.Maps[loader.MAP_NAME_BACKEND_IFINDEX]
+	if !ok {
+		return fmt.Errorf("failed to find bakcend ifindex map")
+	}
+	upstreamMap, ok := l.Maps[loader.MAP_NAME_UPSTREAM_INFO]
+	if !ok {
+		return fmt.Errorf("failed to find upstream info")
+	}
+	conntrack, ok := l.Maps[loader.MAP_NAME_CONNTRACK]
+	if !ok {
+		return fmt.Errorf("failed to find conntrack map")
+	}
+	rrTableMap, ok := l.Maps[loader.MAP_NAME_RR_TABLE]
+	if !ok {
+		return fmt.Errorf("failed to find rr_table map")
+	}
+
+	lbm, err := loadbalancer.New(vip, d.upstream, entry, redirectMap, backendInfoMap, backendIfindexMap, upstreamMap, conntrack, rrTableMap, gc, gcTime)
+	if err != nil {
+		return err
+	}
+
+	d.lb = lbm
+
+	d.logger.InfoCtx(ctx, "start Load balancer loop")
+	go func() {
+		if err := d.lb.Run(ctx); err != nil {
+			panic(err)
+		}
+	}()
 	return nil
 }

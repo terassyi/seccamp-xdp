@@ -153,3 +153,19 @@ func IpAddrFromLe(v uint32) (netip.Addr, error) {
 	}
 	return addr, nil
 }
+
+func IpAddrToU32Le(addr netip.Addr) uint32 {
+	return binary.LittleEndian.Uint32(addr.AsSlice())
+}
+
+func Ntohs(v uint16) uint16 {
+	b := make([]byte, 2)
+	binary.LittleEndian.PutUint16(b, v)
+	return binary.BigEndian.Uint16(b)
+}
+
+func Ntohl(v uint32) uint32 {
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, v)
+	return binary.BigEndian.Uint32(b)
+}

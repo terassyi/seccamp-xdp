@@ -69,10 +69,13 @@ clean-topology:
 	$(SUDO) ip netns del host4 2>/dev/null || true 
 	$(SUDO) ip netns del host5 2>/dev/null || true 
 	$(SUDO) ip netns del host6 2>/dev/null || true 
+	$(SUDO) ip netns del host7 2>/dev/null || true 
+	$(SUDO) ip link del dev vipdev 2>/dev/null || true
 
 NGINX_CONF := nginx/nginx.conf
 SERVER1 ?= app1
 SERVER2 ?= app2
+LB ?= "nginx"
 
 .PHONY: app-docker
 app-docker: $(NGINX_CONF)
@@ -82,15 +85,19 @@ app-docker: $(NGINX_CONF)
 app-netns: $(TEST_APP)
 	mkdir -p ./run
 	$(MAKE) TOPO=tree topology
-	$(MAKE) SERVER1=10.0.2.2 SERVER2=10.0.3.2 $(NGINX_CONF)
+	$(MAKE) SERVER1=10.0.4.2 SERVER2=10.0.5.2 $(NGINX_CONF)
 
+ifeq "${LB}" "nginx"
+	$(SUDO) ./topology/run-with-nginx.sh
+else
 	$(SUDO) ./topology/run.sh
+endif
 
 .PHONY: clean-app-netns
 clean-app-netns:
 	$(SUDO) kill -9 `cat ./run/app1.pid`
 	$(SUDO) kill -9 `cat ./run/app2.pid`
-	$(SUDO) kill -9 `cat ./run/nginx.pid`
+	$(SUDO) kill -9 `cat ./run/nginx.pid` || true
 	rm -rf ./run
 	rm $(TEST_APP)
 

@@ -7,11 +7,13 @@ import (
 
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/dosprotector"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/firewall"
+	"github.com/terassyi/seccamp-xdp/scmlb/pkg/loadbalancer"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/protocols"
 	"github.com/terassyi/seccamp-xdp/scmlb/pkg/rpc"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/exp/slog"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // このファイルでは CLI(scmlb コマンド) と通信するための gRPC API を定義しています。
@@ -184,4 +186,100 @@ func (d *Daemon) DoSProtectionPolicyDelete(ctx context.Context, in *rpc.DoSProte
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) LoadBalancerSet(ctx context.Context, in *rpc.LoadBalancerSetRequest) (*emptypb.Empty, error) {
+
+	d.logger.DebugCtx(ctx, "set a new loadb alancer backend", slog.Any("backend", in))
+	addr, err := netip.ParseAddr(in.Address)
+	if err != nil {
+		d.logger.ErrorCtx(ctx, "failed to parse ip", err, slog.String("ip", in.Address))
+		return nil, err
+	}
+
+	backend := &loadbalancer.Backend{
+		Name:        in.Name,
+		Address:     addr,
+		HealthCheck: in.Healthcheck,
+	}
+
+	if err := d.lb.Set(backend); err != nil {
+		d.logger.ErrorCtx(ctx, "failed to set a new backend", err, slog.Any("backend", backend))
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) LoadBalancerGet(ctx context.Context, in *rpc.LoadBalancerGetRequest) (*rpc.LoadBalancerGetResponse, error) {
+
+	backends, err := d.lb.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	protoBackends := make([]*rpc.LoadBalancerBackend, 0, len(backends))
+
+	for _, b := range backends {
+		d.logger.DebugCtx(ctx, "list backends", slog.Any("backend", b))
+		protoBackends = append(protoBackends, &rpc.LoadBalancerBackend{
+			Id:          int32(b.Id),
+			Name:        b.Name,
+			DevName:     b.Iface.Attrs().Name,
+			IpAddr:      b.Address.String(),
+			MacAddr:     b.MacAddress.String(),
+			Healthcheck: b.HealthCheck,
+			Status:      int32(b.Status),
+		})
+	}
+
+	return &rpc.LoadBalancerGetResponse{
+		Backends: protoBackends,
+	}, nil
+}
+
+func (d *Daemon) LoadBalancerDelete(ctx context.Context, in *rpc.LoadBalancerDeleteRequest) (*emptypb.Empty, error) {
+
+	if err := d.lb.Delete(uint32(in.Id)); err != nil {
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) LoadBalancerDrain(ctx context.Context, in *rpc.LoadBalancerDrainRequest) (*emptypb.Empty, error) {
+
+	if err := d.lb.Drain(uint32(in.Id)); err != nil {
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (d *Daemon) LoadBalancerConntrackGet(ctx context.Context, in *rpc.LoadBalancerConntrackGetRequest) (*rpc.LoadBalancerConntrackGetResponse, error) {
+
+	entries, err := d.lb.GetConntrackEntries()
+	if err != nil {
+		return nil, err
+	}
+
+	protoEntries := make([]*rpc.ConntrackEntry, 0, len(entries))
+
+	for _, e := range entries {
+		protoEntries = append(protoEntries, &rpc.ConntrackEntry{
+			SrcAddr:   e.SrcAddr.String(),
+			DstAddr:   e.DstAddr.String(),
+			SrcPort:   int32(e.SrcPort),
+			DstPort:   int32(e.DstPort),
+			Protocol:  int32(e.Protocol),
+			Status:    int32(e.State),
+			Timestamp: timestamppb.New(e.Timestamp),
+			BackendId: int32(e.BackendId),
+			Counter:   e.Counter,
+		})
+	}
+
+	return &rpc.LoadBalancerConntrackGetResponse{
+		Entries: protoEntries,
+	}, nil
 }
