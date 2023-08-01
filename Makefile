@@ -12,7 +12,7 @@ PWRU_VERSION := 0.0.9
 .PHONY: setup
 setup:
 	$(SUDO) apt update -y
-	$(SUDO) apt install -y git libelf-dev zlib1g zlib1g-dev libbpf-dev pkg-config clang llvm lldb gcc curl vim tcpdump net-tools jq hping3
+	$(SUDO) apt install -y git libelf-dev zlib1g zlib1g-dev libbpf-dev pkg-config clang llvm lldb gcc curl vim tcpdump net-tools jq hping3 telnetd
 	$(SUDO) apt install -y nginx
 	$(SUDO) systemctl stop nginx 2>/dev/null || true # in container, this line is failed
 	$(SUDO) systemctl disable nginx 2>/dev/null || true # in container, this line is failed
@@ -115,3 +115,7 @@ clean-nginx-conf:
 build-test-app: $(TEST_APP)
 $(TEST_APP):
 	cd app; go build -o app main.go
+
+.PHONY: clean-test-app
+clean-test-app:
+	rm $(TEST_APP)
