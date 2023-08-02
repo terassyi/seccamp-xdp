@@ -85,8 +85,8 @@ stop-test-app:
 
 .PHONY: connectivity-test
 connectivity-test:
-	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node5 -a 10.0.5.2 -c http://10.0.5.2:8080/health
-	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node4 -a 10.0.4.2 -c http://10.0.4.2:8080/health
+	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node5 -a 10.0.5.2 -c http://10.0.5.2:8080/health # host6 ns
+	$(SUDO) ip netns exec host2 bin/scmlb lb set -n node4 -a 10.0.4.2 -c http://10.0.4.2:8080/health # host5 ns
 
 	sleep 3
 
@@ -119,3 +119,23 @@ add-backend-test:
 	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
 	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
 	$(SUDO) ip netns exec host1 curl -m 2 http://203.0.113.11:8080/who
+
+.PHONY: firewall-test
+firewall-test:
+	$(SUDO) ip netns exec host3 ping -w 1 -c 1 203.0.113.11
+	$(SUDO) ip netns exec host1 ping -w 1 -c 1 203.0.113.11
+
+	@echo "INSERT ICMP DENY RULE"
+	$(SUDO) ip netns exec host2 bin/scmlb fw set --network 10.0.2.0/24 --protocol icmp
+
+	$(SUDO) ip netns exec host3 ping -w 1 -c 1 203.0.113.11 || true
+	$(SUDO) ip netns exec host1 ping -w 1 -c 1 203.0.113.11
+
+	$(SUDO) ip netns exec host4 curl -m 2 http://203.0.113.11:8080/who
+
+	@echo "INSERT TCP DENY 8000-9000 RULE"
+	$(SUDO) ip netns exec host2 bin/scmlb fw set --network 10.0.3.0/24 --protocol tcp --dst-port 8000-9000
+
+	$(SUDO) ip netns exec host4 curl -m 2 http://203.0.113.11:8080/who || true
+
+	$(SUDO) ip netns exec host2 bin/scmlb fw get
