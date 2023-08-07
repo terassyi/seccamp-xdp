@@ -6,7 +6,7 @@ BPFTOOL := /usr/local/sbin/bpftool
 PWRU := /usr/local/go/bin/pwru
 TEST_APP := ./app/app
 
-GO_VERSION := 1.20.5
+GO_VERSION := 1.20.7
 PWRU_VERSION := 0.0.9
 
 .PHONY: setup
@@ -51,25 +51,25 @@ TOPO ?= "pair"
 .PHONY: topology
 topology: clean-topology
 ifeq "$(TOPO)" "pair"
-	$(SUDO) topology/pair.sh	
+	$(SUDO) topology/pair.sh
 endif
 ifeq "$(TOPO)" "line"
-	$(SUDO) topology/line.sh	
+	$(SUDO) topology/line.sh
 endif
 ifeq "$(TOPO)" "tree"
-	$(SUDO) topology/tree.sh	
+	$(SUDO) topology/tree.sh
 endif
 
 .PHONY: clean-topology
 clean-topology:
-	$(SUDO) ip netns del host0 2>/dev/null || true 
-	$(SUDO) ip netns del host1 2>/dev/null || true 
-	$(SUDO) ip netns del host2 2>/dev/null || true 
-	$(SUDO) ip netns del host3 2>/dev/null || true 
-	$(SUDO) ip netns del host4 2>/dev/null || true 
-	$(SUDO) ip netns del host5 2>/dev/null || true 
-	$(SUDO) ip netns del host6 2>/dev/null || true 
-	$(SUDO) ip netns del host7 2>/dev/null || true 
+	$(SUDO) ip netns del host0 2>/dev/null || true
+	$(SUDO) ip netns del host1 2>/dev/null || true
+	$(SUDO) ip netns del host2 2>/dev/null || true
+	$(SUDO) ip netns del host3 2>/dev/null || true
+	$(SUDO) ip netns del host4 2>/dev/null || true
+	$(SUDO) ip netns del host5 2>/dev/null || true
+	$(SUDO) ip netns del host6 2>/dev/null || true
+	$(SUDO) ip netns del host7 2>/dev/null || true
 	$(SUDO) ip link del dev vipdev 2>/dev/null || true
 
 NGINX_CONF := nginx/nginx.conf
