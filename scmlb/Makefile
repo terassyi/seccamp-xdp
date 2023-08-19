@@ -70,6 +70,7 @@ devenv:
 	$(MAKE) -C ../ TOPO=tree topology
 	$(SUDO) ip netns exec host2 bin/scmlbd start --upstream h2-h0 --vip 203.0.113.11 $(GC) --level -4
 
+
 .PHONY: run-test-app
 run-test-app:
 	$(MAKE) -C ../ build-test-app
@@ -139,3 +140,29 @@ firewall-test:
 	$(SUDO) ip netns exec host4 curl -m 2 http://203.0.113.11:8080/who || true
 
 	$(SUDO) ip netns exec host2 bin/scmlb fw get
+
+.PHONY: step1
+step1:
+	$(MAKE) -C ../ clean-topology
+	$(MAKE) clean || true
+	$(MAKE) build
+	$(MAKE) -C ../ topology TOPO=pair
+	$(SUDO) ip netns exec host0 bin/scmlbd start --upstream h0 --vip 203.0.113.11
+
+.PHONY: step2
+step2:
+	$(MAKE) -C ../ clean-topology
+	$(MAKE) clean || true
+	$(MAKE) build
+	$(MAKE) -C ../ build-test-app
+	$(MAKE) -C ../ topology TOPO=tree
+	$(SUDO) ip netns exec host2 ../app/app
+
+.PHONY: step3
+step3:
+	$(MAKE) -C ../ clean-topology
+	$(MAKE) clean || true
+	$(MAKE) build
+	$(MAKE) -C ../ build-test-app
+	$(MAKE) -C ../ topology TOPO=tree
+	$(MAKE) run-test-app

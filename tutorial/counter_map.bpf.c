@@ -15,10 +15,10 @@ $ sudo bpftool map dump id <みつけた id>
 */
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(key_size, sizeof(u32));
-	__uint(value_size, sizeof(u32));
-	__uint(max_entries, 20);
+	__uint(value_size, sizeof(u64));
+	__uint(max_entries, 3);
 } protocols SEC(".maps");
 
 SEC("xdp")
@@ -51,11 +51,16 @@ int counter(struct xdp_md *ctx) {
 
 	// L4 のプロトコルに合わせてカウントアップする
 	u32 l4_protocol = iph->protocol;
-	u32 *counter = bpf_map_lookup_elem(&protocols, &l4_protocol);
-	if (counter) {
-		(*counter)++;
+	
+	u64 *c = bpf_map_lookup_elem(&protocols, &l4_protocol);
+	if (c) {
+		(*c)++;
+		bpf_printk("increment counter %d", *c);
+	} else {
+		u64 initial_value = 1;
+		bpf_map_update_elem(&protocols, &l4_protocol, &initial_value, 0);
 	}
-
+	
 	return XDP_PASS;
 }
 

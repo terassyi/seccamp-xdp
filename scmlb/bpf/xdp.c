@@ -68,6 +68,7 @@ static inline int redirect(struct ethhdr *eth, u8 *s_mac, u8 *d_mac, u32 ifindex
 	return bpf_redirect_map(&redirect_dev_map, ifindex, 0);
 }
 
+// backend 構造体をコピーします
 void copy_backend(struct backend *src, struct backend *dst) {
 	dst->id = src->id;
 	dst->ifindex = src->ifindex;
@@ -77,6 +78,7 @@ void copy_backend(struct backend *src, struct backend *dst) {
 	dst->dst_ipaddr = src->dst_ipaddr;
 }
 
+// connection_info 構造体をコピーします
 void copy_connection_info(struct connection_info *src, struct connection_info *dst) {
 	dst->counter = src->counter;
 	dst->id = src->id;
@@ -114,14 +116,256 @@ static inline int select_backend() {
 	return 0;
 }
 
+// Ingress の TCP コネクションの状態を処理します。
+static inline void process_tcp_state_ingress(struct tcphdr *tcph, struct connection_info *conn_info) {
+	// エントリーが取れた場合は connection_info 構造体にキャストします。
+	conn_info->counter++;
+	bpf_printk("existing backend id is %d. count up to %d", conn_info->id, conn_info->counter);
+
+	if (tcph->fin) {
+		// TCP FIN フラグがセットされていたとき、Opening or Established -> Closing か Closing -> Closed に遷移する必要があります。
+		if (conn_info->status == Opening || conn_info->status == Established) {
+			conn_info->status = Closing;
+		} else if (conn_info->status == Closing) {
+			conn_info->status = Closed;
+		} else {
+			// その他の状態で FIN がきたときは Closed に遷移します。
+			conn_info->status = Closed;
+		}
+	} else if (tcph->rst) {
+		// TCP RST フラグがセットされていたときは問答無用で Closed に遷移します。
+		conn_info->status = Closed;
+	} else {
+		// その他のフラグに関してはここではコネクションは継続とみなします。
+	}
+}
+
+// Egress の TCP コネクションの状態を処理します。
+static inline void process_tcp_state_egress(struct tcphdr *tcph, struct connection_info *conn_info) {
+
+	// TCP フラグと保存されているコネクションの状態をみてコネクションを処理します。
+	if (tcph->syn) {
+		// SYN フラグが戻りパケットについているとき、Opening -> Established と遷移します。
+		if (conn_info->status == Opening) {
+			conn_info->status = Established;
+		}
+	} else if (tcph->rst) {
+		// RST フラグがセットされているときはどのような状態でも Closed に遷移します。
+		conn_info->status = Closed;
+
+	} else if (tcph->fin) {
+		// FIN フラグがついているときは Opening or Established -> Closing か Closing -> Closed に遷移します。
+		if (conn_info->status == Opening || conn_info->status == Established) {
+			conn_info->status = Closing;
+		} else if (conn_info->status == Closing) {
+			conn_info->status = Closed;
+		} else {
+			// 他の状態のときも Closed に遷移します。
+			conn_info->status = Closed;
+		}
+	}
+}
+
+// UDP コネクションの状態を処理します。
+// UDP の conntrack エントリーは状態を管理しないのでここでは counter をカウントアップするだけです。
+// Ingress でのみ呼び出されます。
+static inline void process_udp_state(struct udphdr *udph, struct connection_info *conn_info) {
+	conn_info->counter++;
+}
+
+// Ingress の TCP パケットの書き換えを行います。
+// Ingress の TCP パケットは選択したバックエンドに転送するために宛先アドレスを VIP からバックエンドのアドレスに書き換えます。
+// それに伴って IP/TCP のチェックサムを再計算します。
+static inline void update_tcp_packet_ingress(struct iphdr *iph, struct tcphdr *tcph, u32 addr) {
+	// tcp checksum を再計算します。
+	// tcp checksum は tcp ヘッダを含めたデータ全体と送信元アドレス、宛先アドレス、プロトコル番号と tcp データを含めたパケット長を計算対象とします。
+	// このチェックサム計算のみに使うデたの塊を疑似ヘッダ(peseudo header) といいます。
+	// ここではアドレス書き換えの差分のみ計算できるようにしています。
+	u16 old_tcp_check = tcph->check;
+	tcph->check = ipv4_csum_update_u32(tcph->check, iph->daddr, addr);
+
+	// dnat のために ip header の daddr を書き換えます。
+	u32 old_daddr = iph->daddr;
+	iph->daddr = addr;
+	// ip checksum を再計算します。
+	// iph->check = ipv4_csum_update_u16(iph->check, old_tcp_check, tcph->check);
+	iph->check = ipv4_csum_update_u32(iph->check, old_daddr, iph->daddr);
+}
+
+// Ingress の UDP パケットの書き換えを行います。
+// Ingress の UDP パケットは選択したバックエンドに転送するために宛先アドレスを VIP からバックエンドのアドレスに書き換えます。
+// それに伴って IP/UDP のチェックサムを再計算します。
+static inline void update_udp_packet_ingress(struct iphdr *iph, struct udphdr *udph, u32 addr) {
+	// UDP checksum を再計算します。
+	// UDP checksum は tcp ヘッダを含めたデータ全体と送信元アドレス、宛先アドレス、プロトコル番号と tcp データを含めたパケット長を計算対象とします。
+	// このチェックサム計算のみに使うデたの塊を疑似ヘッダ(peseudo header) といいます。
+	// ここではアドレス書き換えの差分のみ計算できるようにしています。
+	u16 old_udp_check = udph->check;
+	udph->check = ipv4_csum_update_u32(udph->check, iph->daddr, addr);
+	u32 old_addr = iph->daddr;
+	// dnat のために ip header の daddr を書き換えます。
+	iph->daddr = addr;
+	iph->check = ipv4_csum_update_u32(iph->check, old_addr, iph->daddr);
+}
+
+// Egress の TCP パケットの書き換えを行います。
+// Egress のパケットはバックエンドからクライアントに送られるときに送信元アドレスを VIP にして送信されなければなりません。
+// それに伴って IP/TCP のチェックサムを再計算します。
+static inline void update_tcp_packet_egress(struct iphdr *iph, struct tcphdr *tcph, u32 addr) {
+	// tcp checksum を再計算します。
+	// ここでは 戻りパケットの src address を vip に書き換えています。
+	u16 old_tcp_check = tcph->check;
+	tcph->check = ipv4_csum_update_u32(tcph->check, iph->saddr, addr);
+
+	// reverse SNAT のために ip header の saddr を書き換えます。
+	u32 old_saddr = iph->saddr;
+	iph->saddr = addr;
+	// ip checksum を再計算します。
+	// iph->check = ipv4_csum_update_u16(iph->check, old_tcp_check, tcph->check);
+	iph->check = ipv4_csum_update_u32(iph->check, old_saddr, iph->saddr);
+}
+
+// Egress の UDP パケットの書き換えを行います。
+// Egress のパケットはバックエンドからクライアントに送られるときに送信元アドレスを VIP にして送信されなければなりません。
+// それに伴って IP/UDP のチェックサムを再計算します。
+static inline void update_udp_packet_egress(struct iphdr *iph, struct udphdr *udph, u32 addr) {
+	// udp checksum を再計算します。
+	u16 old_udp_check = udph->check;
+	udph->check = ipv4_csum_update_u32(udph->check, iph->saddr, addr);
+
+	// reverse SNAT のために ip header の saddr を書き換えます。
+	u32 old_saddr = iph->saddr;
+	iph->saddr = addr;
+	// ip checksum を再計算します。
+	// iph->check = ipv4_csum_update_u16(iph->check, old_udp_check, udph->check);
+	iph->check = ipv4_csum_update_u32(iph->check, old_saddr, iph->saddr);
+
+}
+
+// connection_info 造体を初期化します。
+static inline void new_connection_info(struct connection_info *conn_info, u32 backend_id, u32 ifindex, u8 mac_addr[6], u16 state) {
+	conn_info->counter = 1;
+	conn_info->id = backend_id;
+	conn_info->index = ifindex;
+	__builtin_memcpy(conn_info->src_macaddr, mac_addr, ETH_ALEN);
+	conn_info->status = state;
+}
+
+// Ingress TCP パケット用の connection 構造体を作成します。
+// ここで作成した connection 構造体は conntrack に登録するために使われます。
+static inline void build_tcp_connection_ingress(struct connection *conn, struct iphdr *iph, struct tcphdr *tcph) {
+	conn->src_addr = iph->saddr;
+	conn->dst_addr = iph->daddr;
+	conn->src_port = tcph->source;
+	conn->dst_port = tcph->dest;
+	conn->protocol = iph->protocol;
+}
+
+// Ingress UDP パケット用の connection 構造体を作成します。
+// ここで作成した connection 構造体は conntrack に登録するために使われます。
+static inline void build_udp_connection_ingress(struct connection *conn, struct iphdr *iph, struct udphdr *udph) {
+	conn->src_addr = iph->saddr;
+	conn->dst_addr = iph->daddr;
+	conn->src_port = udph->source;
+	conn->dst_port = udph->dest;
+	conn->protocol = iph->protocol;
+}
+
+// Egress TCP パケットの connection 構造体を作成します。
+// ここで作成した connection 構造体は conntrack に登録したエントリーを引くために利用されるので
+// 宛先アドレスを addr として明示的に渡しています(ここでは VIP を期待しています)。
+static inline void build_tcp_connection_egress(struct connection *conn, struct iphdr *iph, struct tcphdr *tcph, u32 addr) {
+	conn->src_addr = iph->daddr;
+	conn->dst_addr = addr;
+	conn->src_port = tcph->dest;
+	conn->dst_port = tcph->source;
+	conn->protocol = iph->protocol;
+}
+
+// Egress UDP パケットの connection 構造体を作成します。
+// ここで作成した connection 構造体は conntrack に登録したエントリーを引くために利用されるので
+// 宛先アドレスを addr として明示的に渡しています(ここでは VIP を期待しています)。
+static inline void build_udp_connection_egress(struct connection *conn, struct iphdr *iph, struct udphdr *udph, u32 addr) {
+	conn->src_addr = iph->daddr;
+	conn->dst_addr = addr;
+	conn->src_port = udph->dest;
+	conn->dst_port = udph->source;
+	conn->protocol = iph->protocol;
+}
+
 // ロードバランサーの TCP パケットを処理する部分の関数です。
 static inline int handle_tcp_ingress(struct tcphdr *tcph, struct iphdr *iph, u8 src_macaddr[6], struct backend *target) {
-
-	// ingress の TCP パケットの処理を記述します。
 
 	if (tcph == NULL) {
 		return -1;
 	}
+
+	// conntrack のエントリーを取得するために connection 構造体を宣言します。
+	struct connection conn;
+	__builtin_memset(&conn, 0, sizeof(conn));
+	build_tcp_connection_ingress(&conn, iph, tcph);
+
+	void *r = bpf_map_lookup_elem(&conntrack, &conn);
+
+	if (r) {
+		// エントリーが取れた場合は connection_info 構造体にキャストします。
+		struct connection_info *conn_info = r;
+		process_tcp_state_ingress(tcph, conn_info);
+
+		// backend id からバックエンドの情報を取り出します。
+		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->id);
+		if (!res) {
+			bpf_printk("backend is not found: %d", conn_info->id);
+			return -1;
+		}
+		struct backend *b = res;
+
+		update_tcp_packet_ingress(iph, tcph, b->dst_ipaddr);
+
+		// target backend を引数に渡したポインタに書き込みます。
+		copy_backend(b, target);
+
+		return 0;
+	}
+
+	// もし conntrack にエントリーがない場合は新しいコネクションとして扱います。
+
+	int selection_result = select_backend();
+	if (selection_result != 0) {
+		return selection_result;
+	}
+
+	bpf_printk("handle new tcp connection. backend is %d", selected_backend_id);
+
+	// selected_backend_id 変数に選ばれたバックエンドが格納されているのでこの値を利用して backend を引きます。
+	void *res = bpf_map_lookup_elem(&backend_info, &selected_backend_id);
+	if (res == NULL) {
+		bpf_printk("selected backend id(%d) is not registered in backend_info map", selected_backend_id);
+		return -1;
+	}
+
+	struct backend *b = res;
+
+	struct connection_info conn_info;
+	__builtin_memset(&conn_info, 0, sizeof(conn_info));
+	new_connection_info(&conn_info, b->id, b->ifindex, src_macaddr, Opening);
+
+	// 新しいコネクションに対して TCP SYN フラグがついていない場合コネクションは確立されていないので無視します。
+	if (tcph->syn != 1) {
+		bpf_printk("new connection packet must be set syn flag");
+		return -1;
+	}
+
+	// conntrack エントリーを保存します
+	int update_res = bpf_map_update_elem(&conntrack, &conn, &conn_info, 0);
+	if (update_res != 0) {
+		return update_res;
+	}
+
+	update_tcp_packet_ingress(iph, tcph, b->dst_ipaddr);
+
+	// target backend を引数に渡したポインタに書き込みます。
+	copy_backend(b, target);
 
 	return 0;
 }
@@ -129,11 +373,73 @@ static inline int handle_tcp_ingress(struct tcphdr *tcph, struct iphdr *iph, u8 
 // ロードバランサーの UDP パケットを処理する部分の関数です。
 static inline int handle_udp_ingress(struct udphdr *udph, struct iphdr *iph, u8 src_macaddr[6], struct backend *target) {
 
-	// ingress の UDP パケットの処理を記述します。
-
 	if (udph == NULL) {
 		return -1;
 	}
+	
+	// conntrack のエントリーを取得するために connection 構造体を宣言します。
+	struct connection conn;
+	__builtin_memset(&conn, 0, sizeof(conn));
+	build_udp_connection_ingress(&conn, iph, udph);
+
+	void *r = bpf_map_lookup_elem(&conntrack, &conn);
+	if (r) {
+		// エントリーが取れた場合は connection_info 構造体にキャストします。
+		struct connection_info *conn_info = r;
+
+		process_udp_state(udph, conn_info);
+
+		// backend id からバックエンドの情報を取り出します。
+
+		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->id);
+		if (!res) {
+			bpf_printk("backend is not found: %d", conn_info->id);
+			return -1;
+		}
+		struct backend *b = res;
+
+		update_udp_packet_ingress(iph, udph, b->dst_ipaddr);
+
+		// target backend を引数に渡したポインタに書き込みます。
+		copy_backend(b, target);
+		
+
+		return 0;
+	}
+	// もし conntrack にエントリーがない場合は新しいコネクションとして扱います。
+
+	struct connection_info conn_info;
+	__builtin_memset(&conn_info, 0, sizeof(conn_info));
+
+	int selection_result = select_backend();
+	if (selection_result != 0) {
+		bpf_printk("failed to select backend. errno is %d", selection_result);
+		return selection_result;
+	}
+
+	bpf_printk("handle new udp flow. backend is %d", selected_backend_id);
+
+	// selected_backend_id 変数に選ばれたバックエンドが格納されているのでこの値を利用して backend を引きます。
+	void *res = bpf_map_lookup_elem(&backend_info, &selected_backend_id);
+	if (res == NULL) {
+		bpf_printk("selected backend fd(%d) is not registered in backend_info map", selected_backend_id);
+		return -1;
+	}
+
+	struct backend *b = res;
+
+	new_connection_info(&conn_info, b->id, b->ifindex, src_macaddr, NotTcp);
+
+	// 新しい conntrack エントリーを保存します
+	int update_res = bpf_map_update_elem(&conntrack, &conn, &conn_info, 0);
+	if (update_res != 0) {
+		return update_res;
+	}
+
+	update_udp_packet_egress(iph, udph, b->dst_ipaddr);
+	
+	// target backend を引数に渡したポインタに書き込みます。
+	copy_backend(b, target);
 
 	return 0;
 }
@@ -142,13 +448,49 @@ static inline int handle_udp_ingress(struct udphdr *udph, struct iphdr *iph, u8 
 static inline int handle_tcp_egress(struct tcphdr *tcph, struct iphdr *iph, struct upstream *us, struct connection_info *target) {
 
 	// egress の TCP パケットの処理を記述します。
+
+	// conntrack を引くための構造体を宣言します。
+	struct connection conn;
+	__builtin_memset(&conn, 0, sizeof(conn));
+	build_tcp_connection_egress(&conn, iph, tcph, us->ipaddr);
+
+	// conntrack のエントリーを引きます。
+	void *conn_res = bpf_map_lookup_elem(&conntrack, &conn);
+	if (conn_res == NULL) {
+		return -1;
+	}
+
+	struct connection_info *conn_info = conn_res;
+
+	process_tcp_state_egress(tcph, conn_info);
+
+	update_tcp_packet_egress(iph, tcph, us->ipaddr);
+
+	// connection_info をコピーします。
+	copy_connection_info(conn_info, target);
+
 	return 0;
 }
 
 // ロードバランサーの外向きの UDP パケットを処理する部分の関数です。
 static inline int handle_udp_egress(struct udphdr *udph, struct iphdr *iph, struct upstream *us, struct connection_info *target) {
 
-	// egress の UDP パケットの処理を記述します。
+	// conntrack を引くための構造体を宣言します。
+	struct connection conn;
+	__builtin_memset(&conn, 0, sizeof(conn));
+	build_udp_connection_egress(&conn, iph, udph, us->ipaddr);
+
+	// conntrack のエントリーを引きます。
+	void *conn_res = bpf_map_lookup_elem(&conntrack, &conn);
+	if (!conn_res) {
+		return -1;
+	}
+	struct connection_info *info = conn_res;
+
+	update_udp_packet_egress(iph, udph, us->ipaddr);
+
+	// connection_info をコピーします。
+	copy_connection_info(info, target);
 
 	return 0;
 }
@@ -157,9 +499,34 @@ static inline int handle_udp_egress(struct udphdr *udph, struct iphdr *iph, stru
 SEC("xdp_count")
 int count(struct xdp_md *ctx) {
 
-	bpf_printk("hello from scmlb count!");
-	
-	// ここに packet counter のロジックを記述します。
+	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// ここにパケットカウンタのロジックを記述する
+
+	// ここまで
 	
 	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_FIREWALL);
 
@@ -170,9 +537,63 @@ int count(struct xdp_md *ctx) {
 SEC("xdp_firewall")
 int firewall(struct xdp_md *ctx) {
 
-	bpf_printk("hello from scmlb firewall!");
-	
-	// ここに firewall のロジックを記述します。
+	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	data += sizeof(*iph);
+
+	struct network nw = {
+		.prefix_len = 32,
+		.address = iph->saddr,
+	};
+
+	// LPM Trie マップを検索します
+	u16 *ids = bpf_map_lookup_elem(&adv_rulematcher, &nw);
+	if (ids) {
+		// 返ってきたポインタを u16 の配列にキャストします
+		for (int i = 0; i < FIRE_WALL_RULE_MAX_SIZE_PER_NETWORK; i++) {
+			if (ids[i] == 0) {
+				break;
+			}
+
+			u32 id = (u32)ids[i];
+
+			bpf_printk("looking up for id: %x", id);
+
+			// ここにファイアウォールのロジックを記述します。
+
+
+			// map から id をキーとして rule をとりだします
+			
+
+			// パケットのプロトコルを判別して port などの必要な値をとりだしてルールにマッチするか確かめます
+
+
+			// もしルールにマッチしていたら drop_counter の値をカウントアップしてパケットをドロップします
+		}
+	}
 
 	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_DOS_PROTECTOR);
 	return XDP_PASS;
@@ -186,30 +607,236 @@ int dos_protector(struct xdp_md *ctx) {
 	// カウントした値を control plane (Go のプログラム) の方から検査して受信したパケットの数に不審な点があれば、
 	// 一つ前の Fire wall にルールを追加してパケットの受信をブロックします。
 
-	bpf_printk("hello from scmlb dos protector!");
+	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
 
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	data += sizeof(*iph);
+
+	// L4 プロトコルを判別する
+	u8 l4_protocol = iph->protocol;
+	u32 src_addr = iph->saddr;
+
+	struct dos_protection_identifier ident;
+	// 構造体のメンバをすべて 0 で初期化しています。
+	// 初期化をしっかりやらないと verifier に怒られます。
+	__builtin_memset(&ident, 0, sizeof(ident));
+	ident.address = src_addr;
+	ident.protocol = l4_protocol;
+
+	if (l4_protocol == IP_PROTO_ICMP) {
+		ident.packet_type = 0;
+
+	} else if (l4_protocol == IP_PROTO_TCP) {
+		struct tcphdr *tcph = data;
+		if (data + sizeof(*tcph) > data_end) {
+			return XDP_ABORTED;
+		}
+		
+		// tcp パケットの場合はフラグをチェックする
+		if (tcph->fin) {
+			ident.packet_type = TCP_FLAG_FIN;
+		} else if (tcph->syn) {
+			ident.packet_type = TCP_FLAG_SYN;
+		} else if (tcph->rst) {
+			ident.packet_type = TCP_FLAG_RST;
+		} else if (tcph->psh) {
+			ident.packet_type = TCP_FLAG_PSH;
+		} else if (tcph->urg) {
+			ident.packet_type = TCP_FLAG_URG;
+		} else if (tcph->ece) {
+			ident.packet_type = TCP_FLAG_ECE;
+		} else if (tcph->cwr) {
+			ident.packet_type = TCP_FLAG_CWR;
+		// ack はほぼすべてのパケットについているので比較を最後にしています
+		} else if (tcph->ack) {
+			ident.packet_type = TCP_FLAG_ACK;
+		}
+	} else if (l4_protocol == IP_PROTO_UDP) {
+		ident.packet_type = 0;
+
+	} else {
+		// icmp, tcp, udp プロトコル以外のパケットは無視する
+		return XDP_ABORTED;
+	}
+
+	u64 *c = bpf_map_lookup_elem(&dosp_counter, &ident);
+	if (c) {
+		(*c)++;
+	} else {
+		u64 init = 1;
+		bpf_map_update_elem(&dosp_counter, &ident, &init, 0);
+	}
+
+	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_LB_INGRESS);
+
+	// ここには到達しません。
 	return XDP_PASS;
-
 }
 
 SEC("xdp_lb_ingress")
 int lb_ingress(struct xdp_md *ctx) {
 
-	// ここに upstream から入ってきたパケットの処理を記述します。
+	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
 
-	// 実際は XDP_REDIRECT を返すことになります。
-	return XDP_PASS;
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
 
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	data += sizeof(*iph);
+
+	u8 l4_protocol = iph->protocol;
+
+	// ロードバランサーでは TCP と UDP プロトコルを対象とします。
+	if (l4_protocol != IP_PROTO_TCP && l4_protocol != IP_PROTO_UDP) {
+		return XDP_PASS;
+	}
+
+	struct backend target;
+	__builtin_memset(&target, 0, sizeof(target));
+
+	if (l4_protocol == IP_PROTO_TCP) {
+		struct tcphdr *tcph = data;
+		if (data + sizeof(*tcph) > data_end) {
+			return XDP_ABORTED;
+		}
+		int res = handle_tcp_ingress(tcph, iph, ethh->h_source, &target);
+		if (res != 0) {
+			// 何かしらのエラーが発生した場合は kernel にパスします。
+			return XDP_PASS;
+		}
+	} else if (l4_protocol == IP_PROTO_UDP) {
+		struct udphdr *udph = data;
+		if (data + sizeof(*udph) > data_end) {
+			return XDP_ABORTED;
+		}
+		int res = handle_udp_ingress(udph, iph, ethh->h_source, &target);
+		if (res != 0) {
+			// 何かしらのエラーが発生した場合は kernel にパスします。
+			return XDP_PASS;
+		}
+	}
+
+	return redirect(ethh, target.src_macaddr, target.dst_macaddr, target.ifindex);
 }
 
 SEC("xdp_lb_egress")
 int lb_egress(struct xdp_md *ctx) {
 
-	// ここに backend から返ってきたパケットの処理を記述します。
-	bpf_printk("hello from scmlb egress");
+	// パケットのバイト列のはじまりのポインタ (data) とおわりのポインタ (data_end) を定義する
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
 
-	// 実際は XDP_REDIRECT を返すことになります。
-	return XDP_PASS;
+	// Ethernet header の構造体にパケットのデータをマッピングする
+	struct ethhdr *ethh = data;
+	// Ethenet header の長さがパケットのバイト列より長くないことを確認する
+	// 無効なアドレスにアクセスしないことを確認している
+	if (data + sizeof(*ethh) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	// IPv4 パケットだけを集計の対象とする
+	if (bpf_ntohs(ethh->h_proto) != ETH_P_IP) {
+		return XDP_PASS;
+	}
+
+	data += sizeof(*ethh);
+
+	// Ethernet payload を IPv4 パケットにマッピングする
+	struct iphdr *iph = data;
+	if (data + sizeof(*iph) > data_end) {
+		return XDP_ABORTED;
+	}
+
+	data += sizeof(*iph);
+
+	u8 l4_protocol = iph->protocol;
+
+	// ロードバランサーでは TCP と UDP プロトコルを対象とします。
+	if (l4_protocol != IP_PROTO_TCP && l4_protocol != IP_PROTO_UDP) {
+		return XDP_PASS;
+	}
+
+
+	// upstream の情報をマップから取得します。
+	u32 u = 0;
+	void *upstream_res = bpf_map_lookup_elem(&upstream_info, &u);
+	if (!upstream_res) {
+		// 値が取れなかったらエラーです。
+		bpf_printk("failed to get upstream information");
+		return XDP_PASS;
+	}
+	struct upstream *us = upstream_res;
+
+	// connection_info を受け取るための構造体を宣言します。
+	struct connection_info target;
+	__builtin_memset(&target, 0, sizeof(target));
+
+	if (l4_protocol == IP_PROTO_TCP) {
+		struct tcphdr *tcph = data;
+		if (data + sizeof(*tcph) > data_end) {
+			return XDP_ABORTED;
+		}
+		int res = handle_tcp_egress(tcph, iph, us, &target);
+		if (res != 0) {
+			// 何かしらのエラーが発生した場合は kernel にパスします。
+			bpf_printk("tcp egress handle error %d", res);
+			return XDP_PASS;
+		}
+	} else if (l4_protocol == IP_PROTO_UDP) {
+		struct udphdr *udph = data;
+		if (data + sizeof(*udph) > data_end) {
+			return XDP_ABORTED;
+		}
+		int res = handle_udp_egress(udph, iph, us, &target);
+		if (res != 0) {
+			// 何かしらのエラーが発生した場合は kernel にパスします。
+			bpf_printk("udp egress handle error %d", res);
+			return XDP_PASS;
+		}
+	}
+
+	return redirect(ethh, us->macaddr, target.src_macaddr, us->ifindex);
 }
 
 SEC("xdp_entry")
@@ -225,9 +852,10 @@ int entrypoint(struct xdp_md *ctx) {
 	if (res == NULL) {
 		// インターフェースのインデックスからバックエンドの情報が取得できなかったときは
 		// アップストリームから来たものとします。
-		// lb_ingress() に tail call します。
+		// counter() に tail call します。
+		// その後、counter -> firewall -> dos_protector -> lb_ingress の順に処理されます。
 		bpf_printk("receive from upstream");
-		bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_LB_INGRESS);
+		bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_COUNT);
 	} else {
 		struct backend *info = res;
 

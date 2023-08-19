@@ -13,11 +13,10 @@ BPF_OBJ := $(TARGET:=.bpf.o)
 	-D __TARGET_ARCH_$(ARCH) \
 		-Wall \
 		-O2 -g -o $@ -c $<
-	llvm-strip -g $@
 
 .PHONY: clean
-clean:
-	rm $(BPF_OBJ)
+clean: clean-topology
+	rm *.bpf.o
 
 .PHONY: attach
 attach:
@@ -26,6 +25,14 @@ attach:
 .PHONY: detach
 detach:
 	$(SUDO) ip netns exec host0 ip link set dev h0 xdp off
+
+.PHONY: topology
+topology:
+	$(MAKE) -C ../ topology TOPO=pair
+
+.PHONY: clean-topology
+clean-topology:
+	$(MAKE) -C ../ clean-topology
 
 .PHONY: log
 log:
