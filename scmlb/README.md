@@ -7,7 +7,7 @@ scmlb は XDP を利用したシンプルな L4 ロードバランサーです�
 > [complete-xdp-parts ブランチ](https://github.com/terassyi/seccamp-xdp/tree/complete-xdp-parts)に完成版があります。
 >
 > XDP の実装を見たい方、動作確認をしたい方は [complete-xdp-parts ブランチ](https://github.com/terassyi/seccamp-xdp/tree/complete-xdp-parts)を参照してください。
-> 
+>
 > また、このプログラムは Linux 上でのみ動作します。(Docker on Mac や Docker on Windows, WSL 上では動作しません。)
 
 
@@ -107,6 +107,96 @@ IPv4 アドレスとそのプレフィックス長を u64 にシリアライズ�
 ルールにマッチしなかった場合は次の id を取得します。
 
 #### ロードバランサー
+
+ロードバランサー機能はクライアントからパケットを受信したときに処理する `lb_ingress()` 関数とバックエンドのアプリケーションサーバーからパケットを受信したときに処理する `lb_egress()` 関数の二つの関数に実装しています．
+
+下図は `lb_ingress()` と `lb_egress()` の大まかな処理の概要図です．
+
+![scmlb_overview](./images/scmlb_overview.drawio.svg)
+
+##### lb_ingress
+
+`lb_ingress()` 関数は upstream(クライアント側)から受信したパケットを処理します．
+以下に `lb_ingress()` 関数の処理の流れを示します．
+
+![scmlb_lb_ingress](./images/scmlb_lb_ingress.drawio.svg)
+
+`lb_ingress()` 関数は tail call で呼び出されます．
+最初に Ethernet, IPv4 ヘッダを解析します．
+その後 L4 プロトコルを判別して TCP と UDP で処理を分岐します．
+それぞれのプロトコルでバックエンドの選択やコネクションの状態管理，転送準備などの処理を行った後，転送先のバックエンドにリダイレクトします．
+
+##### lb_egress
+
+`lb_egress()` 関数はバックエンド(アプリケーションサーバー)から受信したパケットを処理します．
+以下に `lb_egress()` 関数の処理の流れを示します．
+
+![scmlb_lb_egress](./images/scmlb_lb_egress.drawio.svg)
+
+`lb_egress()` 関数も同様に tail call で呼び出されます．
+最初に Ethernet, IPv4 ヘッダを解析します．
+その後 L4 プロトコルを判別して TCP と UDP で処理を分岐します．
+`lb_ingress()` 関数と同様にそれぞれのプロトコルでコネクションの状態管理や転送準備を行った後，upstreamにリダイレクトします．
+
+
+##### handle_tcp_ingress
+
+`handle_tcp_ingress()` 関数は `lb_ingress()` 関数の中で呼び出されて，TCP コネクションを処理する関数です．
+引数として以下の値を受け取ります．
+
+- TCP ヘッダ(`struct tcphdr`)
+- IPv4 ヘッダ(`struct iphdr`)
+- 送信元の MAC アドレス(長さ 6 の u8 の配列)
+- 転送先のバックエンドを格納するための backend 構造体
+
+`handle_tcp_ingress()` 関数の処理の流れを下図に示します．
+
+![scmlb_handle_tcp_ingress](./images/scmlb_handle_tcp_ingress.drawio.svg)
+
+`handle_tcp_ingress()` 関数の処理は既存のコネクションに属するパケットを扱うか，新規のコネクションを扱うかによって処理が分岐します．
+
+まずは引数として受け取った各種ヘッダからコネクションを一意に識別するための `5-tuple` である `connection` 構造体を作成します．
+次に，作成した `connection` 構造体を用いて `conntrack` マップを引いて，そのコネクションが既存のものかどうかを判別します．
+conntrack マップから取得する値の型は `connection_info` 構造体です．
+
+値が取れた場合，既存のコネクションに属するパケットとして処理を続行します．
+まずは TCP ヘッダにセットされている TCP フラグをもとにコネクションの状態を遷移させます．
+次に，取得した `connection_info` 構造体の `id` フィールドに格納されている転送先バックエンド id をキーとしてロードバランサーに登録されているバックエンドの情報を保存している `backend_info` マップを引いて転送先バックエンドの情報を取得します．
+バックエンドの情報が取得出来たら， IP ヘッダの宛先アドレスをそのバックエンドの IP アドレスに書き換えます．
+それに伴って TCP, IPv4 ヘッダそれぞれのチェックサムを再計算します．
+最後に取得したバックエンド情報である `backend` 構造体を 引数の `target` にコピーします．
+
+値が取れなかった場合，新規コネクションのパケットとして処理を行います．
+まずは新規コネクションを割り当てるバックエンドを選択します．
+選択したバックエンドの id は `selected_backend_id` グローバル変数に保存されるのでそれをもとに `backend_info` マップを引いてバックエンドの情報を取得します．
+次に，`conntrack` マップに保存する `connection_info` 構造体を初期化します．
+このとき，`connection_info` の `status` フィールドは `Opening` 状態を代入します．
+そして，`connection` 構造体と `connection_info` 構造体をキーバリューとして `conntrack` マップに保存します．
+最後に IP ヘッダの宛先アドレスを選択したバックエンドの IP アドレスに書き換えます．
+それに伴って TCP, IPv4 ヘッダそれぞれのチェックサムを再計算します．
+最後に取得したバックエンド情報である `backend` 構造体を 引数の `target` にコピーします．
+
+##### handle_tcp_egress
+
+`handle_tcp_egress()` 関数は `lb_egress()` 関数から呼び出されて，TCP パケットを処理する関数です．
+引数として以下を受け取ります．
+
+- TCP ヘッダ(`struct tcphdr`)
+- IPv4 ヘッダ(`struct iphdr`)
+- upstream 情報(`upstream` 構造体)
+- コネクションの情報を格納するための `connection_info` 構造体
+
+`handle_tcp_egress()` 関数の処理の流れを下図に示します．
+
+![scmlb_handle_tcp_egress](./images/scmlb_handle_tcp_egress.drawio.svg)
+
+最初に引数で与えられた TCP, IPv4 ヘッダと upstream 構造体の情報から `connection` 構造体を作成します．
+作成した `connection` 構造体をキーに `conntrack` マップを引いて `connection_info` 構造体を取得します．
+ここで，値が取れなかった場合は `conntrack` に情報が登録されていないためロードバランサー宛てのパケットではないとみなします．
+値が取れた場合，そのコネクションの状態を更新します．
+次に，IP ヘッダの送信元アドレスを upstream のアドレス(ロードバランサーの VIP)に書き換えます．
+それに伴って TCP, IPv4 ヘッダそれぞれのチェックサムを再計算します．
+最後に，取得した `connection_info` 構造体を引数の `target` にコピーします．
 
 ## 使い方
 
@@ -422,7 +512,7 @@ $ scmlb lb delete -i 1
 ```console
 $ scmlb lb conntrack get
 
-src addr          dst addr      src port        dst port        protocol        backend id        status             timestamp  
+src addr          dst addr      src port        dst port        protocol        backend id        status             timestamp
 10.0.1.1        203.0.113.11     32808            7070            tcp               1           established     2023-08-08t13:15:23z
 ```
 
@@ -432,7 +522,7 @@ src addr          dst addr      src port        dst port        protocol        
 
 > **Note**
 > complete-xdp-parts ブランチでビルドしなければ XDP プログラムは動作しません。
-> 
+>
 > main ブランチでもビルド自体は通りますが XDP のパケット処理部が未実装のため動作しません。
 
 以下のコマンドで動作確認のためのトポロジー netns を利用して作成、scmlb/scmlbd のビルド、 scmlbd の起動を行っています。
