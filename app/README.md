@@ -27,3 +27,12 @@ $ docker run --rm --name seccamp-xdp-app -p 8080:8080 seccamp-xdp-app:dev
   This endpoint returns `pong`.
 - `who`
   This endpoint returns a handling server's local address.
+
+## Services
+
+- HTTP server
+  - at 8080
+- TCP echo server
+  - at 7070
+- UDP server
+  - at 9090
