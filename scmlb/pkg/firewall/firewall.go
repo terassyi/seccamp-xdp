@@ -73,7 +73,9 @@ func (f *FwManager) Set(rule *FWRule) (uint32, error) {
 
 	// ここで eBPF マップにルールを追加します
 
+	f.logger.Info("set a fire wall rule", slog.String("network", rule.Prefix.String()), slog.String("protocol", rule.Protocol.String()), slog.Any("from_dst", rule.FromDstPort), slog.Any("to_dst", rule.ToDstPort))
 	nw, r := rule.splitKeyValue()
+	f.logger.Debug("splitted rule", slog.Any("from_dst", r.fromDstPort), slog.Any("to_dst", r.toDstPort))
 	if err := f.ruleMap.Update(nw, r, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
 		return 0, err
@@ -101,6 +103,7 @@ func (f *FwManager) Set(rule *FWRule) (uint32, error) {
 		return 0, err
 	}
 
+	f.logger.Debug("update rule", slog.String("network", rule.Prefix.String()), slog.Any("rule", r))
 	if err := f.advRuleMap.Update(rule.Id, r, ebpf.UpdateAny); err != nil {
 		f.logger.Error("failed to update advanced rule map", err, slog.Int("id", int(r.id)), slog.String("network", rule.Prefix.String()))
 		return 0, err
@@ -203,6 +206,8 @@ func (r *FWRule) splitKeyValue() (network, fwRule) {
 		id:          r.Id,
 		fromSrcPort: uint16(r.FromSrcPort),
 		toSrcPort:   uint16(r.ToSrcPort),
+		fromDstPort: uint16(r.FromDstPort),
+		toDstPort:   uint16(r.ToDstPort),
 		protocol:    uint32(r.Protocol),
 	}
 

@@ -30,6 +30,10 @@ u32 selected_backend_index = 0;
 // ルールに対して与えたプロトコル番号とポートが対象のとき 1 を返して、それ以外の場合は 0 を返す関数です
 int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port, u16 dst_port) {
 
+	if (rule == NULL) {
+		return 0;
+	}
+
 	u8 rule_prorocol = rule->protocol;
 	// パケットのプロトコルがルールの対象プロトコルとマッチしていなければ 0
 	if (rule_prorocol != protocol && rule_prorocol != 0) {
@@ -37,22 +41,24 @@ int fw_match(struct fw_rule *rule, u8 protocol, u16 src_port, u16 dst_port) {
 	}
 
 	// icmp パケットの場合は port がないのでここに入って来ます。
-	if (src_port == 0) {
+	if (protocol == IP_PROTO_ICMP) {
 		return 1;
 	}
 
+	u16 dst = bpf_htons(dst_port);
+	u16 src = bpf_htons(src_port);
 	// rule の from/to_port がどちらも 0 のときはすべてのポートが対象なので 1 を返します。
-	if ((rule->from_src_port == 0) && (rule->to_src_port == 0)) {
+	if ((rule->from_dst_port == 0) && (rule->to_dst_port == 0)) {
 		return 1;
 	}
 
 	// src_port が from_src_port =< src_port <= to_src_port の関係にあるとき 1 を返します。
-	if ((src_port >= rule->from_src_port) && (rule->to_src_port >= src_port)) {
+	if ((src >= rule->from_src_port) && (rule->to_src_port >= src)) {
 		return 1;
 	}
 
 	// dst_port が from_dst_port <= dst_port <= to_dst_port の関係にあるとき 1 を返します。
-	if ((dst_port >= rule->from_dst_port) && (rule->to_dst_port >= dst_port)) {
+	if ((dst >= rule->from_dst_port) && (rule->to_dst_port >= dst)) {
 		return 1;
 	}
 
@@ -580,7 +586,6 @@ int firewall(struct xdp_md *ctx) {
 
 			u32 id = (u32)ids[i];
 
-			bpf_printk("looking up for id: %x", id);
 
 			// ここにファイアウォールのロジックを記述します。
 
@@ -854,13 +859,11 @@ int entrypoint(struct xdp_md *ctx) {
 		// アップストリームから来たものとします。
 		// counter() に tail call します。
 		// その後、counter -> firewall -> dos_protector -> lb_ingress の順に処理されます。
-		bpf_printk("receive from upstream");
 		bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_COUNT);
 	} else {
 		struct backend *info = res;
 
 		// 情報が取得できたときは lb_egress() に tail call します。
-		bpf_printk("receive from backend %d", info->id);
 		bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_LB_EGRESS);
 
 	}
