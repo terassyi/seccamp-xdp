@@ -531,16 +531,14 @@ int count(struct xdp_md *ctx) {
 	}
 
 	// L4 のプロトコルに合わせてカウントアップする
-	u32 l4_protocol = iph->protocol;
+	u32 l4_protocol = (u32)iph->protocol;
+	u32 initial_value = 1;
 	
-	bpf_printk("got packet: protocol is %d", l4_protocol);
-
 	u32 *c = bpf_map_lookup_elem(&counter, &l4_protocol);
 	if (c) {
 		(*c)++;
 		bpf_printk("increment counter %d", c);
 	} else {
-		u32 initial_value = 1;
 		bpf_map_update_elem(&counter, &l4_protocol, &initial_value, 0);
 	}
 	
