@@ -164,7 +164,8 @@ step2:
 step3:
 	$(MAKE) -C ../ clean-topology
 	$(MAKE) clean || true
+	$(MAKE) stop-test-app || true
 	$(MAKE) build
-	$(MAKE) -C ../ build-test-app
-	$(MAKE) -C ../ topology TOPO=tree
+	$(MAKE) -C ../ TOPO=tree topology
 	$(MAKE) run-test-app
+	$(SUDO) ip netns exec host2 bin/scmlbd start --upstream h2-h0 --vip 203.0.113.11 $(GC) --level -4
