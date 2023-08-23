@@ -12,14 +12,14 @@ PWRU_VERSION := 0.0.9
 .PHONY: setup
 setup:
 	$(SUDO) apt update -y
-	$(SUDO) apt install -y git libelf-dev zlib1g zlib1g-dev libbpf-dev pkg-config clang llvm lldb gcc curl vim tcpdump net-tools jq hping3 telnetd nmap
+	$(SUDO) apt install -y git unzip libelf-dev zlib1g zlib1g-dev libbpf-dev pkg-config clang llvm lldb gcc curl vim tcpdump net-tools jq hping3 telnetd nmap
 	$(SUDO) apt install -y nginx
 	$(SUDO) systemctl stop nginx 2>/dev/null || true # in container, this line is failed
 	$(SUDO) systemctl disable nginx 2>/dev/null || true # in container, this line is failed
 
 .PHONY: setup-golang
 setup-golang:
-	$(SUDO) curl -sSLf https://dl.google.com/go/go$(GO_VERSION).linux-amd64.tar.gz | tar -C /usr/local -xzf -
+	$(SUDO) curl -sSLf https://dl.google.com/go/go$(GO_VERSION).linux-amd64.tar.gz | $(SUDO) tar -C /usr/local -xzf -
 	echo "export PATH=$$PATH:/usr/local/go/bin" >> $(HOME)/.bashrc
 
 .PHONY: bpftool
@@ -50,6 +50,7 @@ TOPO ?= "pair"
 
 .PHONY: topology
 topology: clean-topology
+	$(SUDO) sysctl -w net.ipv4.ip_forward=1
 ifeq "$(TOPO)" "pair"
 	$(SUDO) topology/pair.sh
 endif
