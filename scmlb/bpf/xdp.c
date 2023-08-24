@@ -797,7 +797,7 @@ int lb_ingress(struct xdp_md *ctx) {
 		}
 	}
 
-	return redirect(ethh, target.src_macaddr, target.dst_macaddr, target.ifindex);
+	return target.ifindex != 0 ? redirect(ethh, target.src_macaddr, target.dst_macaddr, target.ifindex) : XDP_PASS;
 }
 
 SEC("xdp_lb_egress")
@@ -876,7 +876,7 @@ int lb_egress(struct xdp_md *ctx) {
 		}
 	}
 
-	return redirect(ethh, us->macaddr, target.src_macaddr, us->ifindex);
+	return us->ifindex != 0 ? redirect(ethh, us->macaddr, target.src_macaddr, us->ifindex) : XDP_PASS;
 }
 
 SEC("xdp_entry")
