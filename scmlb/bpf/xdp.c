@@ -87,7 +87,7 @@ void copy_backend(struct backend *src, struct backend *dst) {
 // connection_info 構造体をコピーします
 void copy_connection_info(struct connection_info *src, struct connection_info *dst) {
 	dst->counter = src->counter;
-	dst->id = src->id;
+	dst->backend_id = src->backend_id;
 	dst->index = src->index;
 	dst->status = src->status;
 	__builtin_memcpy(dst->src_macaddr, src->src_macaddr, ETH_ALEN);
@@ -126,7 +126,7 @@ static inline int select_backend() {
 static inline void process_tcp_state_ingress(struct tcphdr *tcph, struct connection_info *conn_info) {
 	// エントリーが取れた場合は connection_info 構造体にキャストします。
 	conn_info->counter++;
-	bpf_printk("existing backend id is %d. count up to %d", conn_info->id, conn_info->counter);
+	bpf_printk("existing backend id is %d. count up to %d", conn_info->backend_id, conn_info->counter);
 
 	if (tcph->fin) {
 		// TCP FIN フラグがセットされていたとき、Opening or Established -> Closing か Closing -> Closed に遷移する必要があります。
@@ -251,7 +251,7 @@ static inline void update_udp_packet_egress(struct iphdr *iph, struct udphdr *ud
 // connection_info 造体を初期化します。
 static inline void new_connection_info(struct connection_info *conn_info, u32 backend_id, u32 ifindex, u8 mac_addr[6], u16 state) {
 	conn_info->counter = 1;
-	conn_info->id = backend_id;
+	conn_info->backend_id = backend_id;
 	conn_info->index = ifindex;
 	__builtin_memcpy(conn_info->src_macaddr, mac_addr, ETH_ALEN);
 	conn_info->status = state;

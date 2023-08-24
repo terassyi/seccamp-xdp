@@ -22,12 +22,12 @@ var setCmd = cobra.Command{
 }
 
 func init() {
-	setCmd.Flags().StringP("network", "n", "0.0.0.0/0", "network range to deny by fire wall")
+	setCmd.Flags().StringP("src-network", "n", "0.0.0.0/0", "source network range to deny by fire wall")
 	setCmd.Flags().StringP("protocol", "t", "any", "transport protocols to deny(expected value is any/icmp/tcp/udp)")
 	setCmd.Flags().StringP("src-port", "s", "0", "port range to deny(example: 22, 5000-6000)")
 	setCmd.Flags().StringP("dst-port", "d", "0", "port range to deny(example: 22, 5000-6000)")
 
-	setCmd.MarkFlagRequired("network")
+	setCmd.MarkFlagRequired("src-network")
 }
 
 func executeSet(cmd *cobra.Command, args []string) error {
@@ -37,7 +37,7 @@ func executeSet(cmd *cobra.Command, args []string) error {
 	}
 	logger := logger.SetUpLogger(constants.LogFormat, out, logger.ValidateLevel(constants.LogLevel))
 
-	networkStr, err := cmd.Flags().GetString("network")
+	networkStr, err := cmd.Flags().GetString("src-network")
 	if err != nil {
 		return err
 	}

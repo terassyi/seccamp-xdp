@@ -50,7 +50,7 @@ struct connection {
 
 // conntrack の connection をキーとして登録されるコネクションの情報を保存する構造体です。
 struct connection_info {
-	u32 id;
+	u32 backend_id;
 	u32 index;
 	u16 status; // TCP コネクションの状態を表します。
 	u8 src_macaddr[6]; // 送信元の MAC アドレス

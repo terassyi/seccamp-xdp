@@ -129,7 +129,7 @@ firewall-test:
 	$(SUDO) ip netns exec host1 ping -w 1 -c 1 203.0.113.11
 
 	@echo "INSERT ICMP DENY RULE"
-	$(SUDO) ip netns exec host2 bin/scmlb fw set --network 10.0.2.0/24 --protocol icmp
+	$(SUDO) ip netns exec host2 bin/scmlb fw set --src-network 10.0.2.0/24 --protocol icmp
 
 	$(SUDO) ip netns exec host3 ping -w 1 -c 1 203.0.113.11 || true
 	$(SUDO) ip netns exec host1 ping -w 1 -c 1 203.0.113.11
@@ -137,7 +137,7 @@ firewall-test:
 	$(SUDO) ip netns exec host4 curl -m 2 http://203.0.113.11:8080/who
 
 	@echo "INSERT TCP DENY 8000-9000 RULE"
-	$(SUDO) ip netns exec host2 bin/scmlb fw set --network 10.0.3.0/24 --protocol tcp --dst-port 8000-9000
+	$(SUDO) ip netns exec host2 bin/scmlb fw set --src-network 10.0.3.0/24 --protocol tcp --dst-port 8000-9000
 
 	$(SUDO) ip netns exec host4 curl -m 2 http://203.0.113.11:8080/who || true
 
