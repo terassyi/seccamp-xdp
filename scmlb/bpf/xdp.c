@@ -319,9 +319,9 @@ static inline int handle_tcp_ingress(struct tcphdr *tcph, struct iphdr *iph, u8 
 		process_tcp_state_ingress(tcph, conn_info);
 
 		// backend id からバックエンドの情報を取り出します。
-		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->id);
+		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->backend_id);
 		if (!res) {
-			bpf_printk("backend is not found: %d", conn_info->id);
+			bpf_printk("backend is not found: %d", conn_info->backend_id);
 			return -1;
 		}
 		struct backend *b = res;
@@ -397,9 +397,9 @@ static inline int handle_udp_ingress(struct udphdr *udph, struct iphdr *iph, u8 
 
 		// backend id からバックエンドの情報を取り出します。
 
-		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->id);
+		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->backend_id);
 		if (!res) {
-			bpf_printk("backend is not found: %d", conn_info->id);
+			bpf_printk("backend is not found: %d", conn_info->backend_id);
 			return -1;
 		}
 		struct backend *b = res;
