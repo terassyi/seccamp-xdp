@@ -2,11 +2,11 @@
 
 scmlb は XDP を利用したシンプルな L4 ロードバランサーです．
 
-> **Warning**
-> このプロジェクトは main ブランチ上には XDP のデータプレーン実装が空です。
-> [complete-xdp-parts ブランチ](https://github.com/terassyi/seccamp-xdp/tree/complete-xdp-parts)に完成版があります。
+> **Note**
+> [handson ブランチ](https://github.com/terassyi/seccamp-xdp/tree/handson)にハンズオン用コードがあります。
+> handson ブランチではXDPのコード内のデータプレーンロジック部分が一部未実装となっています．
 >
-> XDP の実装を見たい方、動作確認をしたい方は [complete-xdp-parts ブランチ](https://github.com/terassyi/seccamp-xdp/tree/complete-xdp-parts)を参照してください。
+> XDP の実装を見たい方、動作確認をしたい方は [main ブランチ](https://github.com/terassyi/seccamp-xdp)を参照してください。
 >
 > また、このプログラムは Linux 上でのみ動作します。(Docker on Mac や Docker on Windows, WSL 上では動作しません。)
 
@@ -521,9 +521,7 @@ src addr          dst addr      src port        dst port        protocol        
 ここでは簡単に動作環境を行います。
 
 > **Note**
-> complete-xdp-parts ブランチでビルドしなければ XDP プログラムは動作しません。
->
-> main ブランチでもビルド自体は通りますが XDP のパケット処理部が未実装のため動作しません。
+> handson ブランチでもビルド自体は通りますが XDP のパケット処理部が未実装のため動作しません。
 
 以下のコマンドで動作確認のためのトポロジー netns を利用して作成、scmlb/scmlbd のビルド、 scmlbd の起動を行っています。
 テスト用のトポロジーは以下のようになっています。
