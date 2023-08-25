@@ -11,7 +11,7 @@
 
 #define IP_PROTO_ICMP 1
 #define IP_PROTO_TCP 6
-#define IP_PROTO_UDP 17 
+#define IP_PROTO_UDP 17
 
 #define TCP_FLAG_FIN 1
 #define TCP_FLAG_SYN 2
@@ -314,64 +314,34 @@ static inline int handle_tcp_ingress(struct tcphdr *tcph, struct iphdr *iph, u8 
 	void *r = bpf_map_lookup_elem(&conntrack, &conn);
 
 	if (r) {
+
+		// ここに既存のコネクションを処理するロジックを記述します
+
 		// エントリーが取れた場合は connection_info 構造体にキャストします。
 		struct connection_info *conn_info = r;
-		process_tcp_state_ingress(tcph, conn_info);
 
 		// backend id からバックエンドの情報を取り出します。
-		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->backend_id);
-		if (!res) {
-			bpf_printk("backend is not found: %d", conn_info->backend_id);
-			return -1;
-		}
-		struct backend *b = res;
-
-		update_tcp_packet_ingress(iph, tcph, b->dst_ipaddr);
 
 		// target backend を引数に渡したポインタに書き込みます。
-		copy_backend(b, target);
+
+		// ここまで
 
 		return 0;
 	}
 
+	// ここに新規のコネクションを処理するロジックを記述します
+
 	// もし conntrack にエントリーがない場合は新しいコネクションとして扱います。
 
-	int selection_result = select_backend();
-	if (selection_result != 0) {
-		return selection_result;
-	}
-
-	bpf_printk("handle new tcp connection. backend is %d", selected_backend_id);
-
 	// selected_backend_id 変数に選ばれたバックエンドが格納されているのでこの値を利用して backend を引きます。
-	void *res = bpf_map_lookup_elem(&backend_info, &selected_backend_id);
-	if (res == NULL) {
-		bpf_printk("selected backend id(%d) is not registered in backend_info map", selected_backend_id);
-		return -1;
-	}
-
-	struct backend *b = res;
-
-	struct connection_info conn_info;
-	__builtin_memset(&conn_info, 0, sizeof(conn_info));
-	new_connection_info(&conn_info, b->id, b->ifindex, src_macaddr, Opening);
 
 	// 新しいコネクションに対して TCP SYN フラグがついていない場合コネクションは確立されていないので無視します。
-	if (tcph->syn != 1) {
-		bpf_printk("new connection packet must be set syn flag");
-		return -1;
-	}
 
 	// conntrack エントリーを保存します
-	int update_res = bpf_map_update_elem(&conntrack, &conn, &conn_info, 0);
-	if (update_res != 0) {
-		return update_res;
-	}
-
-	update_tcp_packet_ingress(iph, tcph, b->dst_ipaddr);
 
 	// target backend を引数に渡したポインタに書き込みます。
-	copy_backend(b, target);
+
+	// ここまで
 
 	return 0;
 }
@@ -382,7 +352,7 @@ static inline int handle_udp_ingress(struct udphdr *udph, struct iphdr *iph, u8 
 	if (udph == NULL) {
 		return -1;
 	}
-	
+
 	// conntrack のエントリーを取得するために connection 構造体を宣言します。
 	struct connection conn;
 	__builtin_memset(&conn, 0, sizeof(conn));
@@ -390,62 +360,34 @@ static inline int handle_udp_ingress(struct udphdr *udph, struct iphdr *iph, u8 
 
 	void *r = bpf_map_lookup_elem(&conntrack, &conn);
 	if (r) {
+		// ここに既存のコネクションを処理するロジックを記述します
+
 		// エントリーが取れた場合は connection_info 構造体にキャストします。
 		struct connection_info *conn_info = r;
 
-		process_udp_state(udph, conn_info);
-
 		// backend id からバックエンドの情報を取り出します。
 
-		void *res = bpf_map_lookup_elem(&backend_info, &conn_info->backend_id);
-		if (!res) {
-			bpf_printk("backend is not found: %d", conn_info->backend_id);
-			return -1;
-		}
-		struct backend *b = res;
-
-		update_udp_packet_ingress(iph, udph, b->dst_ipaddr);
-
 		// target backend を引数に渡したポインタに書き込みます。
-		copy_backend(b, target);
-		
+
+		// ここまで
 
 		return 0;
 	}
+
+	// ここに新規のコネクションを処理するロジックを記述します
+
 	// もし conntrack にエントリーがない場合は新しいコネクションとして扱います。
 
 	struct connection_info conn_info;
 	__builtin_memset(&conn_info, 0, sizeof(conn_info));
 
-	int selection_result = select_backend();
-	if (selection_result != 0) {
-		bpf_printk("failed to select backend. errno is %d", selection_result);
-		return selection_result;
-	}
-
-	bpf_printk("handle new udp flow. backend is %d", selected_backend_id);
-
 	// selected_backend_id 変数に選ばれたバックエンドが格納されているのでこの値を利用して backend を引きます。
-	void *res = bpf_map_lookup_elem(&backend_info, &selected_backend_id);
-	if (res == NULL) {
-		bpf_printk("selected backend fd(%d) is not registered in backend_info map", selected_backend_id);
-		return -1;
-	}
-
-	struct backend *b = res;
-
-	new_connection_info(&conn_info, b->id, b->ifindex, src_macaddr, NotTcp);
 
 	// 新しい conntrack エントリーを保存します
-	int update_res = bpf_map_update_elem(&conntrack, &conn, &conn_info, 0);
-	if (update_res != 0) {
-		return update_res;
-	}
 
-	update_udp_packet_egress(iph, udph, b->dst_ipaddr);
-	
 	// target backend を引数に渡したポインタに書き込みます。
-	copy_backend(b, target);
+
+	// ここまで
 
 	return 0;
 }
@@ -458,22 +400,10 @@ static inline int handle_tcp_egress(struct tcphdr *tcph, struct iphdr *iph, stru
 	// conntrack を引くための構造体を宣言します。
 	struct connection conn;
 	__builtin_memset(&conn, 0, sizeof(conn));
-	build_tcp_connection_egress(&conn, iph, tcph, us->ipaddr);
 
-	// conntrack のエントリーを引きます。
-	void *conn_res = bpf_map_lookup_elem(&conntrack, &conn);
-	if (conn_res == NULL) {
-		return -1;
-	}
+	// ここにコネクションを処理するロジックを記述します
 
-	struct connection_info *conn_info = conn_res;
-
-	process_tcp_state_egress(tcph, conn_info);
-
-	update_tcp_packet_egress(iph, tcph, us->ipaddr);
-
-	// connection_info をコピーします。
-	copy_connection_info(conn_info, target);
+	// ここまで
 
 	return 0;
 }
@@ -486,17 +416,9 @@ static inline int handle_udp_egress(struct udphdr *udph, struct iphdr *iph, stru
 	__builtin_memset(&conn, 0, sizeof(conn));
 	build_udp_connection_egress(&conn, iph, udph, us->ipaddr);
 
-	// conntrack のエントリーを引きます。
-	void *conn_res = bpf_map_lookup_elem(&conntrack, &conn);
-	if (!conn_res) {
-		return -1;
-	}
-	struct connection_info *info = conn_res;
+	// ここにコネクションを処理するロジックを記述します
 
-	update_udp_packet_egress(iph, udph, us->ipaddr);
-
-	// connection_info をコピーします。
-	copy_connection_info(info, target);
+	// ここまで
 
 	return 0;
 }
@@ -530,18 +452,10 @@ int count(struct xdp_md *ctx) {
 		return XDP_ABORTED;
 	}
 
-	// L4 のプロトコルに合わせてカウントアップする
-	u32 l4_protocol = (u32)iph->protocol;
-	u32 initial_value = 1;
-	
-	u32 *c = bpf_map_lookup_elem(&counter, &l4_protocol);
-	if (c) {
-		(*c)++;
-		bpf_printk("increment counter %d", c);
-	} else {
-		bpf_map_update_elem(&counter, &l4_protocol, &initial_value, 0);
-	}
-	
+	// ここにパケットカウンタのロジックを記述します
+
+	// ここまで
+
 	bpf_tail_call(ctx, &calls_map, TAIL_CALLED_FUNC_FIREWALL);
 
 	bpf_printk("must not be reached");
@@ -594,44 +508,16 @@ int firewall(struct xdp_md *ctx) {
 
 			u32 id = (u32)ids[i];
 
+			// ここにファイアウォールのロジックを記述します
 
 			// map から id をキーとして rule をとりだします
-			void *rule_res = bpf_map_lookup_elem(&adv_rules, &id);
-			if (rule_res == NULL) {
-				continue;
-			}
-			struct fw_rule *rule = rule_res;
 
 			// パケットのプロトコルを判別して port などの必要な値をとりだしてルールにマッチするか確かめます
-			int res = 0;
-			if (iph->protocol == IP_PROTO_ICMP) {
-				res = fw_match(rule, iph->protocol, 0, 0);
-			} else if (iph->protocol == IP_PROTO_TCP) {
-				struct tcphdr *tcph = data;
-				if (data + sizeof(*tcph) > data_end) {
-					return XDP_ABORTED;
-				}
 
-				res = fw_match(rule, iph->protocol, tcph->source, tcph->dest);
-			} else if (iph->protocol == IP_PROTO_UDP) {
-				struct udphdr *udph = data;
-				if (data + sizeof(*udph) > data_end) {
-					return XDP_ABORTED;
-				}
-				res = fw_match(rule, iph->protocol, udph->source, udph->dest);
-			}
 			// もしルールにマッチしていたら drop_counter の値をカウントアップしてパケットをドロップします
-			if (res == 1) {
-				bpf_printk("matched the rule: %d", id);
-				u64 *c = bpf_map_lookup_elem(&drop_counter, &rule->id);
-				if (c) {
-					(*c)++;
-				} else {
-					u64 init_value = 1;
-					bpf_map_update_elem(&drop_counter, &rule->id, &init_value, 0);
-				}
-				return XDP_DROP;
-			}
+
+			// ここまで
+
 		}
 	}
 
@@ -693,7 +579,7 @@ int dos_protector(struct xdp_md *ctx) {
 		if (data + sizeof(*tcph) > data_end) {
 			return XDP_ABORTED;
 		}
-		
+
 		// tcp パケットの場合はフラグをチェックする
 		if (tcph->fin) {
 			ident.packet_type = TCP_FLAG_FIN;
@@ -881,7 +767,7 @@ int lb_egress(struct xdp_md *ctx) {
 
 SEC("xdp_entry")
 int entrypoint(struct xdp_md *ctx) {
-	
+
 	// 受信したパケットがどのインターフェースからやってきたかを調べます。
 	u32 ingress_ifindex = ctx->ingress_ifindex;
 
