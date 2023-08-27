@@ -3,8 +3,9 @@
 このリポジトリは 「XDP 入門」の講義資料及びサンプルコードです．
 
 
-> **Note**
-> 講義資料は後日公開予定です．
+[スライド - XDP 入門](https://docs.google.com/presentation/d/1-T1DSOmzYLFvPLsf9bWHnqUKd2sHQBRzK-udE_WvNFM/edit?usp=sharing)
+
+---
 
 ## 想定対象者
 
