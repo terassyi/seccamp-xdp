@@ -2,7 +2,7 @@
 PROTOC_VERSION=22.3
 PROTOC_GEN_GO_VERSION := 1.31.0
 PROTOC_GEN_GO_GRPC_VERSON=1.3.0
-PROTOC_GEN_DOC_VERSION=1.5.1 
+PROTOC_GEN_DOC_VERSION=1.5.1
 
 SUDO := sudo
 VMLINUX := bpf/include/vmlinux.h
@@ -11,9 +11,11 @@ BPFTOOL := /usr/local/sbin/bpftool
 CLI := bin/scmlb
 DAEMON := bin/scmlbd
 
+ARCH := x86_64
+
 .PHONY: setup
 setup:
-	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
+	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-$(ARCH).zip
 	unzip -o protoc.zip bin/protoc 'include/*'
 	mv include protobuf/
 	rm -f protoc.zip
@@ -40,7 +42,7 @@ $(DAEMON):
 clean:
 	rm $(CLI)
 	rm $(DAEMON)
-	rm pkg/rpc/scmlb.pb.go 
+	rm pkg/rpc/scmlb.pb.go
 	rm pkg/rpc/scmlb_grpc.pb.go
 	find pkg/ -type f -name '*bpfe*' -delete
 
@@ -63,7 +65,7 @@ $(VMLINUX):
 
 GC ?= --gc
 .PHONY: devenv
-devenv: 
+devenv:
 	$(MAKE) -C ../ clean-topology
 	$(MAKE) clean || true
 	$(MAKE) stop-test-app || true
