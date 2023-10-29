@@ -2,8 +2,11 @@
 
 このリポジトリは 「XDP 入門」の講義資料及びサンプルコードです．
 
+> **Note**
+> 以下の資料は [SECCON Workshop Fukuoka](https://www.seccon.jp/2023/seccon_workshop/xdp.html) で使用したものです．
+> この資料は XDP 入門の資料をアップデートしたものとなっています．
 
-[スライド - XDP 入門](https://docs.google.com/presentation/d/1-T1DSOmzYLFvPLsf9bWHnqUKd2sHQBRzK-udE_WvNFM/edit?usp=sharing)
+[スライド - XDP で作って学ぶファイアウォールとロードバランサー](https://docs.google.com/presentation/d/1EUC4c68r0T36sDWz6M6zGk4WFGEKqZ6Q6F_peICAZng/edit?usp=sharing)
 
 ---
 
