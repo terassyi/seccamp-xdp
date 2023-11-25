@@ -2,7 +2,7 @@
 PROTOC_VERSION=22.3
 PROTOC_GEN_GO_VERSION := 1.31.0
 PROTOC_GEN_GO_GRPC_VERSON=1.3.0
-PROTOC_GEN_DOC_VERSION=1.5.1 
+PROTOC_GEN_DOC_VERSION=1.5.1
 
 SUDO := sudo
 VMLINUX := bpf/include/vmlinux.h
@@ -18,6 +18,7 @@ setup:
 	rm -rf protobuf/include
 	mv include protobuf/
 	rm -f protoc.zip
+	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $(VMLINUX)
 	GOBIN=$(PWD)/bin go install google.golang.org/protobuf/cmd/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION)
 	GOBIN=$(PWD)/bin go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSON)
 	GOBIN=$(PWD)/bin go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(PROTOC_GEN_DOC_VERSION)
@@ -41,7 +42,7 @@ $(DAEMON):
 clean:
 	rm $(CLI)
 	rm $(DAEMON)
-	rm pkg/rpc/scmlb.pb.go 
+	rm pkg/rpc/scmlb.pb.go
 	rm pkg/rpc/scmlb_grpc.pb.go
 	find pkg/ -type f -name '*bpfe*' -delete
 
@@ -64,7 +65,7 @@ $(VMLINUX):
 
 GC ?= --gc
 .PHONY: devenv
-devenv: 
+devenv:
 	$(MAKE) -C ../ clean-topology
 	$(MAKE) clean || true
 	$(MAKE) stop-test-app || true
