@@ -3,5 +3,6 @@ protobuf/include
 **/*bpfeb.o
 **/*bpfel.go
 **/*bpfel.o
+**/vmlinux.h
 .vscode
 run/

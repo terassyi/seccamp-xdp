@@ -10,7 +10,7 @@ GO_VERSION := 1.20.7
 PWRU_VERSION := 0.0.9
 
 .PHONY: setup
-setup:
+setup: vmlinux
 	$(SUDO) apt update -y
 	$(SUDO) apt install -y git unzip libelf-dev zlib1g zlib1g-dev libbpf-dev pkg-config clang llvm lldb gcc curl vim tcpdump net-tools jq hping3 telnetd nmap
 	$(SUDO) apt install -y nginx
@@ -41,7 +41,7 @@ $(PWRU):
 	$(SUDO) cp pwru /usr/local/bin
 
 .PHONY: vmlinux
-vmlinux: $(VMLINUX)
+vmlinux: $(VMLINUX) $(BPFTOOL)
 $(VMLINUX):
 	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $(VMLINUX)
 
